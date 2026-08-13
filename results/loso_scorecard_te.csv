@@ -1,0 +1,3 @@
+pos,target,predictor,rmse,mean_spearman,dm_t_vs_market,dm_p_vs_market,n,mde
+TE,ppg,(i) ADP-only m_hat,2.8263940333796285,0.4449447202534686,,,179,
+TE,ppg,(ii) blind theta*,2.7983965368377604,0.4655964102689693,0.4455058060305413,0.6664775866082328,179,0.9675687997634475

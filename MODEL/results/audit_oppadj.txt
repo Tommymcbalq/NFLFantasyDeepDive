@@ -1,0 +1,39 @@
+==============================================================================
+OPPONENT ADJUSTMENT: DOES IT EARN ITS PLACE?
+rolling-origin CV, fit seasons <s, predict s, s = 2017..2023
+features (incumbent spec B, rebuilt): ['off_epa_noto_diff', 'def_epa_noto_diff', 'net_to_rate_diff']
+==============================================================================
+  roll   n=1832  CV log loss 0.6353   acc 0.6523
+  v2raw  n=1832  CV log loss 0.6402   acc 0.6370
+  v2adj  n=1832  CV log loss 0.6397   acc 0.6392
+  v1adj  n=1832  CV log loss 0.6358   acc 0.6474
+
+pairwise, blocked bootstrap by season-week (negative = first is better):
+  full adjustment vs NO adjustment at all    +0.0044 [-0.0016,+0.0108] p=0.139 folds_neg=2/7 -> NOISE
+  opponent block vs shrinkage-only           -0.0005 [-0.0031,+0.0022] p=0.768 folds_neg=4/7 -> NOISE
+  shrinkage alone vs plain rolling mean      +0.0049 [-0.0020,+0.0113] p=0.161 folds_neg=1/7 -> NOISE
+  two-stage prior vs single pooled fit       +0.0039 [-0.0017,+0.0096] p=0.190 folds_neg=2/7 -> NOISE
+
+==============================================================================
+(b) DOES THE ADJUSTMENT'S VALUE DEPEND ON HOW MUCH DATA IT HAS?
+hypothesis: opponent ratings are prior-driven and noisy early, so the
+adjustment should hurt in weeks 1-4 and help later
+==============================================================================
+bucket         n     roll    v2raw    v2adj   adj-roll               95% CI
+wk 1-4       439   0.6432   0.6490   0.6477    +0.0045   [-0.0038,+0.0135]
+wk 5-9       498   0.6321   0.6316   0.6332    +0.0010   [-0.0089,+0.0111]
+wk 10-18     895   0.6332   0.6405   0.6394    +0.0062   [-0.0038,+0.0158]
+
+==============================================================================
+(c/d) SHRINK THE ADJUSTMENT ITSELF: Q(alpha) = Q_raw + alpha*(Q_adj-Q_raw)
+alpha=0 no adjustment, alpha=1 the current pipeline. If the adjustment
+is mostly propagated noise the CV optimum lies well below 1.
+==============================================================================
+ alpha  cv_logloss  d_vs_alpha0      lo     hi  boot_p
+  0.00      0.6402          NaN     NaN    NaN     NaN
+  0.25      0.6398      -0.0004 -0.0010 0.0003   0.263
+  0.50      0.6396      -0.0006 -0.0020 0.0007   0.347
+  0.75      0.6395      -0.0006 -0.0026 0.0013   0.566
+  1.00      0.6397      -0.0005 -0.0032 0.0022   0.717
+  1.25      0.6401      -0.0001 -0.0034 0.0033   0.971
+  1.50      0.6406       0.0005 -0.0032 0.0045   0.836

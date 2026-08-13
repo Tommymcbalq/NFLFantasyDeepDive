@@ -1,0 +1,51 @@
+==============================================================================
+A. THE 2x2: opponent adjustment x memory profile
+   rolling-origin CV 2017-2023, n=1832, blocked bootstrap by season-week
+==============================================================================
+  v1 memory + ADJ      CV log loss 0.6358  acc 0.6474
+  v1 memory + raw      CV log loss 0.6351  acc 0.6539
+  v2 memory + ADJ      CV log loss 0.6397  acc 0.6392
+  v2 memory + raw      CV log loss 0.6402  acc 0.6370
+
+  main effects and interaction (blocked bootstrap):
+    adjustment | v1 memory       +0.0007 [-0.0011,+0.0025] p=0.442 folds_neg=3/7
+    adjustment | v2 memory       -0.0005 [-0.0031,+0.0022] p=0.768 folds_neg=4/7
+    v1 memory | adjustment on    -0.0039 [-0.0095,+0.0020] p=0.194 folds_neg=5/7
+    v1 memory | adjustment off   -0.0050 [-0.0117,+0.0015] p=0.143 folds_neg=6/7
+
+==============================================================================
+B. WITHIN-SEASON HALF-LIFE H (v2 estimator, adjustment ON)
+   tune_v2.py picked H=2 on a 544-game inner split whose noise floor
+   (~0.002) is the size of the effect. Re-swept on the 1832-game CV.
+==============================================================================
+  H=   1.0  ll=0.6460  acc=0.6217  vs H=1: +nan [+nan,+nan]
+  H=   2.0  ll=0.6397  acc=0.6392  vs H=1: -0.0063 [-0.0101,-0.0023]
+  H=   4.0  ll=0.6370  acc=0.6468  vs H=1: -0.0090 [-0.0156,-0.0018]
+  H=   6.0  ll=0.6366  acc=0.6436  vs H=1: -0.0094 [-0.0176,-0.0017]
+  H=  10.0  ll=0.6366  acc=0.6392  vs H=1: -0.0094 [-0.0176,-0.0009]
+  H=  16.0  ll=0.6367  acc=0.6425  vs H=1: -0.0093 [-0.0186,-0.0005]
+  H=  24.0  ll=0.6368  acc=0.6403  vs H=1: -0.0091 [-0.0185,-0.0000]
+  H= 100.0  ll=0.6370  acc=0.6397  vs H=1: -0.0089 [-0.0185,+0.0004]
+
+==============================================================================
+C. PRIOR CARRYOVER kappa (how much of last season survives)
+==============================================================================
+  kappa=0.00  ll=0.6561  acc=0.5966
+  kappa=0.30  ll=0.6474  acc=0.6228
+  kappa=0.60  ll=0.6422  acc=0.6283
+  kappa=0.90  ll=0.6397  acc=0.6392
+  kappa=1.00  ll=0.6393  acc=0.6397
+
+==============================================================================
+D. DOES THE AMOUNT OF SHRINKAGE CHANGE THE VALUE OF THE ADJUSTMENT?
+   an over-shrunk opponent block is a no-op by construction, so a null
+   at one lambda is not a null at every lambda
+==============================================================================
+    lambda       ADJ       raw   adj-raw                 95% CI
+       2.0    0.6452    0.6465   -0.0013   [-0.0052,+0.0026] p=0.501
+       5.0    0.6407    0.6412   -0.0006   [-0.0040,+0.0029] p=0.731
+      10.0    0.6391    0.6391   +0.0001   [-0.0028,+0.0028] p=0.973
+      20.0    0.6399    0.6395   +0.0004   [-0.0016,+0.0024] p=0.733
+      40.0    0.6419    0.6416   +0.0003   [-0.0010,+0.0016] p=0.629
+      80.0    0.6440    0.6438   +0.0002   [-0.0006,+0.0009] p=0.696
+     200.0    0.6459    0.6458   +0.0000   [-0.0003,+0.0004] p=0.825

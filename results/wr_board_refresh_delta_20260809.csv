@@ -1,0 +1,33 @@
+rank_theta,player,team,adp,adp_rank,tier,mu_hat,n_eff,V,m_adp,tau2,B,theta_star,post_SD,delta_rank_vs_adp,edge_terms_applied,adp_jul,theta_jul,rank_v3,_merge,d_theta,d_rank,theta_adp_only,mu_old,neff_old,d_from_adp,d_from_muhat
+1.0,Puka Nacua,LAR,2.9,1.0,vet,21.2675,2.3333,18.4888,19.5565,11.2539,0.6216,20.2039,2.6449,0.0,none (no term survived FDR + temporal holdout),2.8,20.2039,1.0,both,0.0,0.0,20.2039,21.2675,2.3333,0.0,0.0
+2.0,Ja'Marr Chase,CIN,3.9,2.0,vet,20.2337,2.8182,15.3079,19.5565,11.2539,0.5763,19.8434,2.5467,0.0,none (no term survived FDR + temporal holdout),3.9,19.8434,2.0,both,-0.0,0.0,19.8434,20.2337,2.8182,0.0,-0.0
+3.0,Amon-Ra St. Brown,DET,7.0,4.0,vet,19.551,2.8182,15.3079,18.3793,11.2539,0.5763,18.8757,2.5467,1.0,none (no term survived FDR + temporal holdout),7.6,18.6247,3.0,both,0.251,0.0,18.6247,19.551,2.8182,0.251,0.0
+4.0,Jaxon Smith-Njigba,SEA,5.9,3.0,vet,17.6084,2.3333,18.4888,18.3793,11.2539,0.6216,18.0876,2.6449,-1.0,none (no term survived FDR + temporal holdout),6.1,18.0876,4.0,both,-0.0,0.0,18.0876,17.6084,2.3333,0.0,-0.0
+5.0,Rashee Rice,KC,11.4,7.0,vet,18.7997,2.3333,18.4888,16.9407,11.2539,0.6216,17.6441,2.6449,2.0,none (no term survived FDR + temporal holdout),27.3,16.364,7.0,both,1.28,2.0,16.3641,18.7997,2.3333,1.28,0.0
+6.0,CeeDee Lamb,DAL,11.3,6.0,vet,17.7202,2.9077,14.8367,17.44,11.2539,0.5687,17.5608,2.5298,0.0,none (no term survived FDR + temporal holdout),10.6,17.8473,5.0,both,-0.2865,-1.0,17.8473,17.7202,2.9077,-0.2865,-0.0
+7.0,Drake London,ATL,10.6,5.0,vet,15.6643,2.6471,16.2976,17.9437,11.2539,0.5915,17.0127,2.5801,-2.0,none (no term survived FDR + temporal holdout),12.6,16.1302,9.0,both,0.8824,2.0,16.1303,15.6643,2.6471,0.8824,0.0
+8.0,A.J. Brown,NE,17.5,9.0,vet,16.2838,2.9535,14.6067,16.4226,11.2539,0.5648,16.3622,2.5212,1.0,none (no term survived FDR + temporal holdout),14.2,16.3622,8.0,both,-0.0,0.0,16.3622,16.2838,2.9535,0.0,-0.0
+9.0,Justin Jefferson,MIN,13.3,8.0,vet,15.597,2.9077,14.8367,16.4226,11.2539,0.5687,16.0665,2.5298,-1.0,none (no term survived FDR + temporal holdout),10.0,16.9315,6.0,both,-0.865,-3.0,16.9315,15.597,2.9077,-0.865,-0.0
+10.0,Nico Collins,HOU,23.2,12.0,vet,15.531,2.8182,15.3079,15.3977,11.2539,0.5763,15.4542,2.5467,2.0,none (no term survived FDR + temporal holdout),23.2,15.4542,11.0,both,-0.0,1.0,15.4542,15.531,2.8182,0.0,-0.0
+11.0,Davante Adams,LAR,41.2,20.0,vet,16.8073,2.9985,14.3872,14.3184,11.2539,0.5611,15.4108,2.5129,9.0,none (no term survived FDR + temporal holdout),40.0,15.4108,12.0,both,-0.0,1.0,15.4108,16.8073,2.9985,0.0,-0.0
+12.0,Chris Olave,NO,20.1,10.0,vet,15.0706,2.6471,16.2976,15.3977,11.2539,0.5915,15.2641,2.5801,-2.0,none (no term survived FDR + temporal holdout),21.2,15.2641,13.0,both,0.0,1.0,15.2641,15.0706,2.6471,0.0,0.0
+13.0,George Pickens,DAL,21.6,11.0,vet,14.6795,2.6471,16.2976,15.3977,11.2539,0.5915,15.1044,2.5801,-2.0,none (no term survived FDR + temporal holdout),17.4,15.7106,10.0,both,-0.6062,-3.0,15.7106,14.6795,2.6471,-0.6062,0.0
+14.0,Malik Nabers,NYG,33.9,18.0,vet,15.5967,1.8,23.967,14.5024,11.2539,0.6805,14.852,2.7673,4.0,none (no term survived FDR + temporal holdout),43.6,14.4383,17.0,both,0.4137,3.0,14.4383,15.5967,1.8,0.4137,-0.0
+15.0,Tee Higgins,CIN,39.2,19.0,vet,15.0412,2.9077,14.8367,14.3184,11.2539,0.5687,14.6302,2.5298,4.0,none (no term survived FDR + temporal holdout),26.4,14.9504,14.0,both,-0.3202,-1.0,14.9504,15.0412,2.9077,-0.3202,-0.0
+16.0,Garrett Wilson,NYJ,28.5,14.0,vet,14.0504,2.6471,16.2976,14.8815,11.2539,0.5915,14.542,2.5801,-2.0,none (no term survived FDR + temporal holdout),27.0,14.542,16.0,both,-0.0,0.0,14.542,14.0504,2.6471,0.0,-0.0
+17.0,Zay Flowers,BAL,26.6,13.0,vet,13.7935,2.3333,18.4888,14.8815,11.2539,0.6216,14.4698,2.6449,-4.0,none (no term survived FDR + temporal holdout),25.4,14.7907,15.0,both,-0.3209,-2.0,14.7907,13.7935,2.3333,-0.3209,-0.0
+18.0,DeVonta Smith,PHI,29.1,15.0,vet,13.2465,2.8182,15.3079,14.8815,11.2539,0.5763,14.1888,2.5467,-3.0,none (no term survived FDR + temporal holdout),28.5,14.1888,19.0,both,0.0,1.0,14.1888,13.2465,2.8182,0.0,0.0
+19.0,Tetairoa McMillan,CAR,33.9,17.0,soph,12.5529,1.0,39.7318,14.5024,7.8524,0.835,14.1807,2.5606,-2.0,none (no term survived FDR + temporal holdout),33.4,14.2846,18.0,both,-0.1039,-1.0,14.2846,12.5529,1.0,-0.1039,0.0
+20.0,Emeka Egbuka,TB,33.7,16.0,soph,11.5118,1.0,39.7318,14.5644,7.8524,0.835,14.0606,2.5606,-4.0,none (no term survived FDR + temporal holdout),45.5,13.5012,23.0,both,0.5595,3.0,13.5012,11.5118,1.0,0.5595,-0.0
+21.0,Ladd McConkey,LAC,44.2,22.0,vet,12.5562,1.8,23.967,13.8943,11.2539,0.6805,13.4668,2.7673,1.0,none (no term survived FDR + temporal holdout),35.3,13.7554,21.0,both,-0.2886,0.0,13.7554,12.5562,1.8,-0.2886,0.0
+22.0,Terry McLaurin,WAS,42.6,21.0,vet,12.8171,2.9535,14.6067,13.8943,11.2539,0.5648,13.4255,2.5212,-1.0,none (no term survived FDR + temporal holdout),36.6,13.6651,22.0,both,-0.2396,0.0,13.6651,12.8171,2.9535,-0.2395,-0.0
+23.0,Jameson Williams,DET,45.8,23.0,vet,12.6493,2.6471,16.2976,13.8943,11.2539,0.5915,13.3858,2.5801,0.0,none (no term survived FDR + temporal holdout),47.2,13.3858,24.0,both,-0.0,1.0,13.3858,12.6493,2.6471,0.0,-0.0
+24.0,Jaylen Waddle,DEN,48.8,24.0,vet,12.5428,2.8182,15.3079,13.8943,11.2539,0.5763,13.3217,2.5467,0.0,none (no term survived FDR + temporal holdout),42.2,13.3217,25.0,both,-0.0,1.0,13.3217,12.5428,2.8182,0.0,-0.0
+25.0,DJ Moore,BUF,51.3,26.0,vet,12.2704,2.9767,14.493,13.8943,11.2539,0.5629,13.1845,2.5169,1.0,none (no term survived FDR + temporal holdout),,,,left_only,,,,,,,
+26.0,Mike Evans,SF,60.0,30.0,vet,13.6624,2.9985,14.3872,12.5437,11.2539,0.5611,13.0347,2.5129,4.0,none (no term survived FDR + temporal holdout),51.2,13.7925,20.0,both,-0.7578,-6.0,13.7925,13.6624,2.9985,-0.7578,0.0
+27.0,Rome Odunze,CHI,49.7,25.0,vet,10.9578,1.8,23.967,13.8943,11.2539,0.6805,12.9561,2.7673,-2.0,none (no term survived FDR + temporal holdout),54.9,12.1125,29.0,both,0.8435,2.0,12.1126,10.9578,1.8,0.8435,0.0
+28.0,Courtland Sutton,DEN,59.8,29.0,vet,13.1324,2.9767,14.493,12.5437,11.2539,0.5629,12.8011,2.5169,1.0,none (no term survived FDR + temporal holdout),,,,left_only,,,,,,,
+29.0,Luther Burden III,CHI,53.4,27.0,soph,9.7154,1.0,39.7318,13.1731,7.8524,0.835,12.6025,2.5606,-2.0,none (no term survived FDR + temporal holdout),45.2,13.2047,26.0,both,-0.6023,-3.0,13.2047,9.7154,1.0,-0.6022,-0.0
+30.0,Alec Pierce,IND,55.5,28.0,vet,10.7484,2.6471,16.2976,12.5437,11.2539,0.5915,11.8104,2.5801,-2.0,none (no term survived FDR + temporal holdout),59.4,11.8104,30.0,both,0.0,0.0,11.8104,10.7484,2.6471,0.0,0.0
+,Christian Watson,,,,,,,,,,,,,,,60.1,12.3029,28.0,right_only,,,,,,,
+,DK Metcalf,,,,,,,,,,,,,,,56.2,12.7135,27.0,right_only,,,,,,,

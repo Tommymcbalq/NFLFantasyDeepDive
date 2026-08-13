@@ -1,0 +1,54 @@
+==============================================================================
+A. HOW BIG IS THE ADJUSTMENT?
+   sd of the correction relative to the sd of the rating it corrects
+==============================================================================
+  metric            sd(O_raw)  sd(adj-raw)   ratio  corr(raw,adj)
+  O_epa_noto           0.0508       0.0079   0.155         0.9880
+  O_epa                0.0578       0.0091   0.157         0.9876
+  O_to_rate            0.0039       0.0008   0.199         0.9806
+  O_pts_per_drive      0.3188       0.0491   0.154         0.9882
+  D_epa_noto           0.0404       0.0101   0.250         0.9685
+  D_epa                0.0471       0.0115   0.244         0.9700
+  D_to_rate            0.0039       0.0008   0.196         0.9812
+  D_pts_per_drive      0.2563       0.0622   0.243         0.9705
+
+==============================================================================
+B. FORECAST ENCOMPASSING: does the correction predict anything?
+   y_realised ~ b1*O_raw + b2*(O_adj - O_raw), SEs clustered by game
+   b2 ~ b1  -> the adjustment recovers real quality
+   b2 ~ 0   -> the adjustment is pure noise
+   b2 < 0   -> the adjustment is anti-informative
+==============================================================================
+       metric side    n  b_raw   t_raw  b_adjustment  t_adjustment      lo     hi     R2
+     epa_noto    O 6302 0.9999 23.9731        1.0221        3.7712  0.4909 1.5533 0.0855
+     epa_noto    D 6302 0.6569 11.6959        0.8059        3.4661  0.3502 1.2615 0.0216
+          epa    O 6302 0.9600 22.3291        1.1393        4.2567  0.6147 1.6639 0.0764
+          epa    D 6302 0.6707 12.2581        0.6597        2.8455  0.2053 1.1141 0.0234
+      to_rate    O 6302 0.2795  4.4588        0.3468        1.1437 -0.2475 0.9411 0.0032
+      to_rate    D 6302 0.3133  5.0604       -0.1177       -0.3859 -0.7158 0.4803 0.0050
+pts_per_drive    O 6302 0.9539 22.1218        0.9354        3.5125  0.4135 1.4574 0.0755
+pts_per_drive    D 6302 0.6233 10.9688        0.7517        3.1671  0.2865 1.2169 0.0192
+
+  Wald test b2 = b1 (does the correction carry the same weight as the
+  rating it corrects, as it would if it were recovering true quality?)
+    O_epa_noto   b2-b1 = +0.0223 t=+0.08 p=0.9325
+    D_epa_noto   b2-b1 = +0.1489 t=+0.68 p=0.4963
+    O_epa        b2-b1 = +0.1793 t=+0.68 p=0.4937
+    D_epa        b2-b1 = -0.0110 t=-0.05 p=0.9602
+
+==============================================================================
+C. IS THE CORRECTION ITSELF RELIABLE?
+   correlation between a team's mean correction in weeks 2-9 and in
+   weeks 10-18 of the SAME season. A real strength-of-schedule effect
+   should persist within a season; noise should not.
+==============================================================================
+  epa_noto     corr(correction h1, h2) = +0.299   corr(raw rating h1, h2) = +0.796   n=384
+  epa          corr(correction h1, h2) = +0.219   corr(raw rating h1, h2) = +0.804   n=384
+
+==============================================================================
+D. HOW UNBALANCED ARE NFL SCHEDULES, REALLY?
+   sd across teams of the season-mean opponent quality, in the same
+   units as team quality itself
+==============================================================================
+  epa_noto     sd(team offence quality) = 0.0623   sd(season-mean opponent defence) = 0.0113   ratio = 0.181
+  epa          sd(team offence quality) = 0.0700   sd(season-mean opponent defence) = 0.0135   ratio = 0.193

@@ -1,0 +1,268 @@
+{
+ "picks": [
+  {
+   "pick": 1,
+   "team": 1,
+   "player": "Jahmyr Gibbs",
+   "position": "RB"
+  },
+  {
+   "pick": 2,
+   "team": 2,
+   "player": "Bijan Robinson",
+   "position": "RB"
+  },
+  {
+   "pick": 3,
+   "team": 3,
+   "player": "Puka Nacua",
+   "position": "WR"
+  },
+  {
+   "pick": 4,
+   "team": 4,
+   "player": "Ja'Marr Chase",
+   "position": "WR"
+  },
+  {
+   "pick": 5,
+   "team": 5,
+   "player": "Christian McCaffrey",
+   "position": "RB"
+  },
+  {
+   "pick": 6,
+   "team": 6,
+   "player": "Jaxon Smith-Njigba",
+   "position": "WR"
+  },
+  {
+   "pick": 7,
+   "team": 7,
+   "player": "Jonathan Taylor",
+   "position": "RB"
+  },
+  {
+   "pick": 8,
+   "team": 8,
+   "player": "Amon-Ra St. Brown",
+   "position": "WR"
+  },
+  {
+   "pick": 9,
+   "team": 9,
+   "player": "CeeDee Lamb",
+   "position": "WR"
+  },
+  {
+   "pick": 10,
+   "team": 10,
+   "player": "Drake London",
+   "position": "WR"
+  },
+  {
+   "pick": 11,
+   "team": 10,
+   "player": "Ashton Jeanty",
+   "position": "RB"
+  },
+  {
+   "pick": 12,
+   "team": 9,
+   "player": "De'Von Achane",
+   "position": "RB"
+  },
+  {
+   "pick": 13,
+   "team": 8,
+   "player": "Chase Brown",
+   "position": "RB"
+  },
+  {
+   "pick": 14,
+   "team": 7,
+   "player": "James Cook III",
+   "position": "RB"
+  },
+  {
+   "pick": 15,
+   "team": 6,
+   "player": "Rashee Rice",
+   "position": "WR"
+  },
+  {
+   "pick": 16,
+   "team": 5,
+   "player": "A.J. Brown",
+   "position": "WR"
+  },
+  {
+   "pick": 17,
+   "team": 4,
+   "player": "Justin Jefferson",
+   "position": "WR"
+  },
+  {
+   "pick": 18,
+   "team": 3,
+   "player": "Saquon Barkley",
+   "position": "RB"
+  },
+  {
+   "pick": 19,
+   "team": 2,
+   "player": "Chris Olave",
+   "position": "WR"
+  },
+  {
+   "pick": 20,
+   "team": 1,
+   "player": "Derrick Henry",
+   "position": "RB"
+  },
+  {
+   "pick": 21,
+   "team": 1,
+   "player": "Josh Jacobs",
+   "position": "RB"
+  },
+  {
+   "pick": 22,
+   "team": 2,
+   "player": "George Pickens",
+   "position": "WR"
+  },
+  {
+   "pick": 23,
+   "team": 3,
+   "player": "Josh Allen",
+   "position": "QB"
+  },
+  {
+   "pick": 24,
+   "team": 4,
+   "player": "Kenneth Walker",
+   "position": "RB"
+  },
+  {
+   "pick": 25,
+   "team": 5,
+   "player": "Omarion Hampton",
+   "position": "RB"
+  },
+  {
+   "pick": 26,
+   "team": 6,
+   "player": "Nico Collins",
+   "position": "WR"
+  },
+  {
+   "pick": 27,
+   "team": 7,
+   "player": "Jeremiyah Love",
+   "position": "RB"
+  },
+  {
+   "pick": 28,
+   "team": 8,
+   "player": "Zay Flowers",
+   "position": "WR"
+  },
+  {
+   "pick": 29,
+   "team": 9,
+   "player": "Breece Hall",
+   "position": "RB"
+  },
+  {
+   "pick": 30,
+   "team": 10,
+   "player": "Cam Skattebo",
+   "position": "RB"
+  },
+  {
+   "pick": 31,
+   "team": 10,
+   "player": "Garrett Wilson",
+   "position": "WR"
+  },
+  {
+   "pick": 32,
+   "team": 9,
+   "player": "DeVonta Smith",
+   "position": "WR"
+  },
+  {
+   "pick": 33,
+   "team": 8,
+   "player": "Emeka Egbuka",
+   "position": "WR"
+  },
+  {
+   "pick": 34,
+   "team": 7,
+   "player": "Malik Nabers",
+   "position": "WR"
+  },
+  {
+   "pick": 35,
+   "team": 6,
+   "player": "Kyren Williams",
+   "position": "RB"
+  },
+  {
+   "pick": 36,
+   "team": 5,
+   "player": "Davante Adams",
+   "position": "WR"
+  },
+  {
+   "pick": 37,
+   "team": 4,
+   "player": "Tetairoa McMillan",
+   "position": "WR"
+  },
+  {
+   "pick": 38,
+   "team": 3,
+   "player": "Javonte Williams",
+   "position": "RB"
+  },
+  {
+   "pick": 39,
+   "team": 2,
+   "player": "Terry McLaurin",
+   "position": "WR"
+  },
+  {
+   "pick": 40,
+   "team": 1,
+   "player": "Brock Bowers",
+   "position": "TE"
+  },
+  {
+   "pick": 41,
+   "team": 1,
+   "player": "Trey McBride",
+   "position": "TE"
+  },
+  {
+   "pick": 42,
+   "team": 2,
+   "player": "Travis Etienne Jr.",
+   "position": "RB"
+  },
+  {
+   "pick": 43,
+   "team": 3,
+   "player": "Tee Higgins",
+   "position": "WR"
+  },
+  {
+   "pick": 44,
+   "team": 4,
+   "player": "Drake Maye",
+   "position": "QB"
+  }
+ ]
+}

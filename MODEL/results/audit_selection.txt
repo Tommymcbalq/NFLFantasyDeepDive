@@ -1,0 +1,93 @@
+============================================================================================
+CANDIDATE MENU: single-season VALID vs 7-fold rolling-origin CV
+============================================================================================
+                    k  valid2023_ll   cv_ll  cv_brier  valid_rank  cv_rank
+spec                                                                      
+A epa only          2        0.6693  0.6404    0.2249         9.0      8.0
+B specB             3        0.6682  0.6398    0.2245         4.0      4.0
+C B + pace          4        0.6683  0.6398    0.2245         5.0      5.0
+D B + rest          6        0.6676  0.6399    0.2246         3.0      6.0
+E B + sr            5        0.6708  0.6369    0.2229        10.0      1.0
+F pass/rush split   5        0.6673  0.6409    0.2251         2.0      9.0
+G B + cpoe          5        0.6685  0.6401    0.2246         7.0      7.0
+H B + early-down    5        0.6690  0.6397    0.2244         8.0      3.0
+I 22-feature wide  22        0.6685  0.6428    0.2253         6.0     10.0
+J B + neutral       4        0.6671  0.6395    0.2244         1.0      2.0
+K B no turnovers    2        0.6756  0.6453    0.2269        11.0     11.0
+
+Spearman rank correlation VALID-2023 vs rolling CV: rho = 0.173 (p=0.612)
+VALID winner: J B + neutral;  CV winner: E B + sr
+
+============================================================================================
+SELECTION NOISE BETWEEN NON-NESTED SPECS
+blocked-bootstrap 95% CI half-width for each spec vs spec B, at n=272 (2023)
+and at n=1832 (rolling CV). This is the real 'how big must a gain be' number.
+============================================================================================
+  A epa only           VALID +0.0012 (+-0.0061)   CV +0.0006 [-0.0015,+0.0028]
+  C B + pace           VALID +0.0001 (+-0.0012)   CV +0.0000 [-0.0003,+0.0003]
+  D B + rest           VALID -0.0006 (+-0.0025)   CV +0.0001 [-0.0011,+0.0012]
+  E B + sr             VALID +0.0026 (+-0.0094)   CV -0.0029 [-0.0081,+0.0023]
+  F pass/rush split    VALID -0.0009 (+-0.0077)   CV +0.0011 [-0.0016,+0.0038]
+  G B + cpoe           VALID +0.0004 (+-0.0027)   CV +0.0003 [-0.0009,+0.0015]
+  H B + early-down     VALID +0.0009 (+-0.0048)   CV -0.0001 [-0.0026,+0.0024]
+  I 22-feature wide    VALID +0.0003 (+-0.0115)   CV +0.0030 [-0.0040,+0.0102]
+  J B + neutral        VALID -0.0011 (+-0.0039)   CV -0.0003 [-0.0012,+0.0007]
+  K B no turnovers     VALID +0.0075 (+-0.0148)   CV +0.0055 [-0.0008,+0.0119]
+
+median 95% CI half-width: VALID (272) 0.0054   CV (1832) 0.0023
+implied sd of a null difference: VALID ~0.0028, CV ~0.0012
+
+winner's curse: with K=11 candidates whose true differences are ~0 and a null sd of 0.0028,
+  E[min] = -0.0044  -- the apparent gain of the 'best' spec on a single 272-game season is ~0.0044 of pure selection optimism.
+  same on the 1832-game rolling CV: E[min] = -0.0019
+
+leave-one-season-out sensitivity (fit all seasons 2014-2023 except s, predict s;
+uses future seasons for coefficients, so it is a sensitivity check only):
+  B specB              LOSO logloss 0.6398
+  I 22-feature wide    LOSO logloss 0.6411
+  K B no turnovers     LOSO logloss 0.6465
+
+============================================================================================
+FINAL v1 -- spec chosen by rolling-origin CV: E B + sr
+scored ONCE on the 2024-25 holdout
+============================================================================================
+specs within one CV-null-sd of the best (parsimony rule picks the top row):
+          k   cv_ll  valid2023_ll
+spec                             
+E B + sr  5  0.6369        0.6708
+
+=> v1 = E B + sr: ['off_epa_noto_diff', 'def_epa_noto_diff', 'to_margin_diff', 'off_sr_diff', 'def_sr_diff']
+
+coefficients (fit 2014-2023, standardised features):
+                     coef      se       z
+const              0.2251  0.0417  5.3950
+off_epa_noto_diff  0.1702  0.0926  1.8375
+def_epa_noto_diff  0.2204  0.0710  3.1026
+to_margin_diff     0.2385  0.0459  5.1916
+off_sr_diff        0.4200  0.0947  4.4334
+def_sr_diff       -0.0236  0.0708 -0.3339
+
+holdout scores:
+                               n  logloss   brier     acc     auc
+model                                                            
+v1 model                     543   0.6345  0.2218  0.6538  0.6957
+market (devigged moneyline)  543   0.5984  0.2061  0.6851  0.7396
+base rate 2014-23            543   0.6910  0.2489  0.5359  0.5000
+  2024: model 0.6107  market 0.5875  n=272
+  2025: model 0.6585  market 0.6094  n=271
+gap to market (logloss): +0.0361  95% CI [+0.0152,+0.0615]
+gap to market (brier): +0.0156  95% CI [+0.0065,+0.0266]
+gap to base rate (logloss): -0.0564  95% CI [-0.0889,-0.0222]
+
+holdout calibration of v1:
+        bin   n  p_mean  y_mean    gap
+[0.00,0.20)  13   0.161   0.308  0.146
+[0.20,0.30)  24   0.257   0.292  0.035
+[0.30,0.40)  68   0.353   0.353 -0.001
+[0.40,0.50) 115   0.450   0.374 -0.076
+[0.50,0.60) 106   0.553   0.491 -0.062
+[0.60,0.70)  99   0.647   0.697  0.050
+[0.70,0.80)  77   0.745   0.753  0.008
+[0.80,1.00)  41   0.846   0.829 -0.017
+Cox recalibration: a=-0.055 (se 0.094), b=0.945 (se 0.131)
+Murphy: {'REL': np.float64(0.0048), 'RES': np.float64(0.0322), 'UNC': np.float64(0.2487), 'brier': 0.2218}

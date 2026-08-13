@@ -1,0 +1,165 @@
+============================================================================================
+SELECTION NOISE -- the noise floor for log-loss differences
+============================================================================================
+
+1 pure-noise feature: log-loss 'improvement' from features that are known to be worthless
+  single-season VALID (n=272):   mean -0.0003  sd 0.0015  95th pct +0.0017  max +0.0046
+  rolling CV 2017-23 (n=1832):   mean -0.0004  sd 0.0005  95th pct +0.0005  max +0.0011
+  P(noise feature 'wins' on VALID) = 0.43; on rolling CV = 0.18
+
+5 pure-noise features: log-loss 'improvement' from features that are known to be worthless
+  single-season VALID (n=272):   mean -0.0012  sd 0.0032  95th pct +0.0035  max +0.0090
+  rolling CV 2017-23 (n=1832):   mean -0.0018  sd 0.0012  95th pct +0.0001  max +0.0008
+  P(noise feature 'wins' on VALID) = 0.35; on rolling CV = 0.07
+
+sampling sd of a PAIRED log-loss difference (blocked bootstrap, real model pair
+spec B vs spec B + pace_diff), at three evaluation sizes:
+  2023 only (272)              diff +0.0001  95% CI [-0.0011,+0.0013]  half-width 0.0012
+  2024-25 (543)                diff -0.0006  95% CI [-0.0022,+0.0011]  half-width 0.0016
+  rolling CV 2017-23 (1832)    diff +0.0000  95% CI [-0.0003,+0.0003]  half-width 0.0003
+
+============================================================================================
+SEASON-BY-SEASON DIAGNOSIS (the 2023 question)
+============================================================================================
+ season   n  model_ll  market_ll  baserate_ll  entropy  home_wr  mkt_fav_wr  mean_abs_spread  mean_abs_margin  close_games_pct  mean_pmkt_conf  model_minus_mkt  mkt_minus_entropy
+   2015 256    0.6598     0.6521       0.6919   0.6901   0.5391      0.6172           4.8848          11.0625           0.5117          0.1530           0.0077            -0.0380
+   2016 254    0.6483     0.6288       0.6820   0.6807   0.5787      0.6378           4.5610          10.3110           0.5236          0.1445           0.0196            -0.0519
+   2017 256    0.6230     0.5857       0.6843   0.6843   0.5664      0.7148           5.2891          11.8125           0.4336          0.1637           0.0373            -0.0986
+   2018 254    0.6199     0.6111       0.6752   0.6720   0.6024      0.6693           5.4685          11.1811           0.4843          0.1691           0.0088            -0.0609
+   2019 255    0.6494     0.6136       0.6983   0.6925   0.5176      0.6431           5.6765          11.6863           0.4784          0.1716           0.0358            -0.0789
+   2020 255    0.6320     0.5901       0.7014   0.6931   0.4980      0.6784           5.5216          11.1137           0.4745          0.1695           0.0419            -0.1031
+   2021 271    0.6483     0.6216       0.6953   0.6926   0.5166      0.6236           6.0314          12.2214           0.4244          0.1788           0.0267            -0.0710
+   2022 269    0.6357     0.6085       0.6860   0.6856   0.5613      0.6580           5.0353           9.7770           0.5167          0.1528           0.0271            -0.0771
+   2023 272    0.6682     0.6273       0.6871   0.6871   0.5551      0.6838           4.9375          11.2647           0.4963          0.1510           0.0408            -0.0597
+   2024 272    0.6078     0.5875       0.6915   0.6910   0.5331      0.7132           4.9154          11.1985           0.5184          0.1532           0.0203            -0.1035
+   2025 271    0.6531     0.6094       0.6903   0.6901   0.5387      0.6568           5.3745          11.1919           0.4945          0.1715           0.0437            -0.0808
+
+Read: 'entropy' is the log loss of the season's OWN home-win base rate --
+the irreducible floor for a model that knows nothing but the season outcome mix.
+'model_minus_mkt' is the model's skill deficit; if 2023 is anomalous FOR THE MODEL,
+that column should spike in 2023. If 2023 is just a high-entropy season, market_ll
+rises too and the deficit column does not move.
+
+model_minus_mkt: mean 0.0282, sd 0.0129, 2023 = 0.0408 (z = +0.98)
+market_ll:       mean 0.6123, sd 0.0200, 2023 = 0.6273 (z = +0.75)
+correlation across seasons: model_ll vs market_ll = 0.777
+
+2023 within-season breakdown (model spec B, trained on <2023):
+           n   model  market
+week                        
+(0, 4]    64  0.6415  0.6253
+(4, 8]    58  0.7044  0.6365
+(8, 12]   58  0.6160  0.5932
+(12, 17]  76  0.6847  0.6474
+(17, 22]  16  0.7539  0.6308
+
+worst 10 games for the model in 2023 (and what the market said):
+        game_id home_team away_team  week     p  p_mkt  home_win  margin    ll  ll_mkt
+2023_05_JAX_BUF       BUF       JAX     5 0.843  0.685         0    -5.0 1.849   1.156
+2023_18_PIT_BAL       BAL       PIT    18 0.839  0.417         0    -7.0 1.828   0.540
+2023_13_ARI_PIT       PIT       ARI    13 0.801  0.710         0   -14.0 1.616   1.236
+ 2023_06_SF_CLE       CLE        SF     6 0.200  0.209         1     2.0 1.611   1.567
+2023_14_TEN_MIA       MIA       TEN    14 0.796  0.868         0    -1.0 1.591   2.023
+2023_10_HOU_CIN       CIN       HOU    10 0.794  0.685         0    -3.0 1.582   1.156
+ 2023_16_BAL_SF        SF       BAL    16 0.783  0.744         0   -14.0 1.529   1.363
+2023_12_CHI_MIN       MIN       CHI    12 0.770  0.600         0    -2.0 1.469   0.915
+2023_16_CIN_PIT       PIT       CIN    16 0.231  0.417         1    23.0 1.467   0.875
+2023_17_ARI_PHI       PHI       ARI    17 0.763  0.847         0    -4.0 1.440   1.874
+
+2023 model log loss 0.6682; excluding the 10 worst games 0.6327
+2023 market log loss 0.6273; same 10 games excluded 0.6028
+
+2023 calibration of the model:
+        bin  n  p_mean  y_mean    gap
+[0.00,0.20)  5   0.161   0.200  0.039
+[0.20,0.30) 18   0.251   0.444  0.194
+[0.30,0.40) 21   0.358   0.381  0.023
+[0.40,0.50) 55   0.452   0.455  0.003
+[0.50,0.60) 74   0.556   0.554 -0.002
+[0.60,0.70) 42   0.659   0.738  0.079
+[0.70,0.80) 39   0.746   0.564 -0.182
+[0.80,1.00) 18   0.838   0.833 -0.004
+
+============================================================================================
+COEFFICIENT STABILITY AND ERA DRIFT
+============================================================================================
+ season   n  const  off_epa_noto_diff  def_epa_noto_diff  to_margin_diff  off_epa_noto_diff_se  def_epa_noto_diff_se  to_margin_diff_se  const_se
+   2014 255  0.300              0.684              0.418           0.149                 0.158                 0.157              0.151     0.136
+   2015 256  0.184              0.349              0.233           0.356                 0.161                 0.152              0.151     0.131
+   2016 254  0.379              0.415              0.022           0.440                 0.155                 0.148              0.140     0.135
+   2017 256  0.301              0.613              0.394           0.286                 0.172                 0.148              0.138     0.135
+   2018 254  0.441              0.584              0.123           0.332                 0.148                 0.153              0.146     0.137
+   2019 255  0.074              0.390              0.321           0.296                 0.144                 0.133              0.138     0.132
+   2020 255  0.007              0.665              0.102           0.341                 0.152                 0.130              0.171     0.135
+   2021 271  0.078              0.661              0.311          -0.069                 0.146                 0.129              0.148     0.129
+   2022 269  0.284              0.645             -0.055           0.242                 0.152                 0.140              0.162     0.131
+   2023 272  0.223              0.350              0.068           0.209                 0.116                 0.150              0.144     0.125
+   2024 272  0.163              0.742             -0.010           0.300                 0.136                 0.170              0.146     0.134
+   2025 271  0.155              0.466              0.448           0.090                 0.125                 0.115              0.125     0.129
+
+heterogeneity test per coefficient (Cochran Q across 12 season fits):
+  const                pooled +0.214  Q=10.3 (11 df) p=0.500  I^2=0.00
+  off_epa_noto_diff    pooled +0.537  Q=11.3 (11 df) p=0.416  I^2=0.03
+  def_epa_noto_diff    pooled +0.214  Q=17.7 (11 df) p=0.089  I^2=0.38
+  to_margin_diff       pooled +0.243  Q=10.0 (11 df) p=0.527  I^2=0.00
+
+HFA drift: home win rate and fitted intercept by season, plus a trend test
+        home_wr    n  mean_spread  mean_margin
+season                                        
+2014     0.5686  255       2.3059       2.4980
+2015     0.5391  256       2.1816       1.5625
+2016     0.5787  254       2.1398       2.5866
+2017     0.5664  256       1.9609       2.4844
+2018     0.6024  254       2.3819       2.2205
+2019     0.5176  255       1.7588      -0.1412
+2020     0.4980  255       1.0353       0.0549
+2021     0.5166  271       1.6624       1.7196
+2022     0.5613  269       1.7045       1.9926
+2023     0.5551  272       1.6581       2.6838
+2024     0.5331  272       1.4926       1.8676
+2025     0.5387  271       1.5295       2.0775
+  mean home margin trend: -0.017 pts/season (se 0.081, p=0.835)
+  home win rate trend:    -0.0030/season (se 0.0024, p=0.249)
+  2020 (no crowds): home margin 0.05 vs 1.96 in all other seasons
+
+does modelling the drift help? rolling-origin CV 2017-23:
+  spec B                   CV logloss 0.6398
+  spec B + season_c        CV logloss 0.6410
+  spec B + is_neutral      CV logloss 0.6395
+  spec B + div_game        CV logloss 0.6401
+    spec B + season_c        vs spec B: +0.0012 [-0.0007,+0.0031]
+    spec B + is_neutral      vs spec B: -0.0003 [-0.0012,+0.0007]
+    spec B + div_game        vs spec B: +0.0003 [-0.0015,+0.0022]
+
+training window and recency weighting (rolling-origin CV 2017-23):
+  all seasons, unweighted    CV logloss 0.6398
+  half-life 6 seasons        CV logloss 0.6399
+  half-life 3 seasons        CV logloss 0.6400
+  half-life 1.5 seasons      CV logloss 0.6406
+  last 5 seasons only        CV logloss 0.6401
+  last 3 seasons only        CV logloss 0.6417
+    half-life 6 seasons        vs unweighted: +0.0001 [-0.0003,+0.0004]
+    half-life 3 seasons        vs unweighted: +0.0002 [-0.0005,+0.0009]
+    half-life 1.5 seasons      vs unweighted: +0.0008 [-0.0007,+0.0022]
+    last 5 seasons only        vs unweighted: +0.0003 [-0.0005,+0.0011]
+    last 3 seasons only        vs unweighted: +0.0019 [-0.0001,+0.0040]
+
+============================================================================================
+INFLUENTIAL OBSERVATIONS (train fit 2014-2022)
+============================================================================================
+max Cook's D 0.0086 (4/n = 0.00172); 73 obs above 4/n
+        game_id  season  week  home_win  margin  spread_home  off_epa_noto_diff  def_epa_noto_diff  to_margin_diff  cooksD  leverage
+2015_16_STL_SEA    2015    16         0    -6.0         11.0              0.236              0.068           0.014   0.009     0.002
+ 2020_15_NYJ_LA    2020    15         0    -3.0         17.5              0.121              0.191           0.012   0.008     0.003
+2019_16_OAK_LAC    2019    16         0    -7.0          7.5              0.139              0.100          -0.012   0.006     0.006
+2015_16_CAR_ATL    2015    16         1     7.0         -7.0             -0.096             -0.091          -0.026   0.005     0.003
+ 2021_18_GB_DET    2021    18         1     7.0         -4.0             -0.088             -0.084          -0.025   0.004     0.003
+ 2017_14_NE_MIA    2017    14         1     7.0        -10.0             -0.132             -0.072          -0.021   0.004     0.003
+2016_17_BUF_NYJ    2016    17         1    20.0         -3.5             -0.092              0.031          -0.026   0.004     0.005
+ 2016_10_DEN_NO    2016    10         0    -2.0          3.0              0.128             -0.159           0.011   0.004     0.006
+
+coefficients with/without the most influential 1% of train games:
+  const                full +0.2223  trimmed +0.2189  (shift -0.0034, se 0.0441)
+  off_epa_noto_diff    full +0.5544  trimmed +0.6345  (shift +0.0801, se 0.0500)
+  def_epa_noto_diff    full +0.2035  trimmed +0.2344  (shift +0.0309, se 0.0463)
+  to_margin_diff       full +0.2714  trimmed +0.3207  (shift +0.0494, se 0.0486)

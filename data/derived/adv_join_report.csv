@@ -1,0 +1,25 @@
+join,left_rows,matched,match_rate,note
+players.csv pfr_id<->gsis_id,25044,22553,0.90054,coverage of nflverse players.csv
+player_week -> team_week,140747,140747,1.0,
+snap_counts -> gsis_id,17248,17211,0.99785,"17211 by pfr_id, 0 by name"
+pfr_rec -> gsis_id,4130,4124,0.99855,"4122 by pfr_id, 2 by name"
+pfr_rush -> gsis_id,2820,2817,0.99894,"2817 by pfr_id, 0 by name"
+pfr_pass -> gsis_id,848,848,1.0,"848 by pfr_id, 0 by name"
+espn_qbr -> gsis_id,1183,1183,1.0,"1176 by espn_id, rest by unique-name"
+wr_te <- snap_counts,2913,2904,0.99691,
+wr_te <- participation,2913,2884,0.99004,
+wr_te <- pfr_rec,2913,2730,0.93718,
+wr_te <- ngs_receiving,2913,994,0.34123,
+wr_te <- pbp_receiving,2913,2737,0.93958,
+rb <- snap_counts,1319,1317,0.99848,
+rb <- participation,1319,1301,0.98635,
+rb <- pfr_rush,1319,809,0.61334,
+rb <- pfr_rec,1319,1145,0.86808,
+rb <- ngs_rushing,1319,405,0.30705,
+rb <- pbp_rushing,1319,1194,0.90523,
+rb <- pbp_receiving,1319,1145,0.86808,
+qb <- pfr_pass,599,599,1.0,
+qb <- ngs_passing,599,327,0.54591,
+qb <- pbp_qb,599,599,1.0,
+qb <- espn_qbr,599,329,0.54925,
+qb <- pbp_rushing,599,473,0.78965,

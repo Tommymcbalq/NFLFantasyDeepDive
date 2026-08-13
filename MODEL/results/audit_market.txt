@@ -1,0 +1,150 @@
+train margin sd = 14.35; sd(margin - spread) on TRAIN = 12.98
+market logit fit: intercept -0.0451, spread 0.1440 (implied probit-equivalent sigma ~ 11.81)
+moneyline missing on 1 of 3140 games
+median moneyline overround: 1.0258 (mean 1.0304)
+
+============================================================================================
+MARKET BENCHMARK CONSTRUCTIONS (complete-case: games with moneyline)
+============================================================================================
+
+--- train ---
+                    n  logloss   brier     acc     auc
+model                                                 
+model_specB      2324   0.6350  0.2223  0.6347  0.6855
+m0_fixed135      2324   0.6140  0.2129  0.6553  0.7188
+m1_fixed_hat     2324   0.6134  0.2127  0.6553  0.7188
+m2_logit_spread  2324   0.6124  0.2124  0.6553  0.7188
+m3_ml_mult       2324   0.6128  0.2125  0.6558  0.7183
+m4_ml_shin       2324   0.6127  0.2125  0.6558  0.7183
+m4_ml_power      2324   0.6128  0.2125  0.6558  0.7182
+m4_ml_add        2324   0.6127  0.2125  0.6558  0.7183
+
+--- valid ---
+                   n  logloss   brier     acc     auc
+model                                                
+model_specB      272   0.6682  0.2376  0.6103  0.6298
+m0_fixed135      272   0.6240  0.2173  0.6801  0.6948
+m1_fixed_hat     272   0.6235  0.2171  0.6801  0.6948
+m2_logit_spread  272   0.6233  0.2170  0.6801  0.6948
+m3_ml_mult       272   0.6273  0.2187  0.6838  0.6945
+m4_ml_shin       272   0.6275  0.2188  0.6838  0.6945
+m4_ml_power      272   0.6282  0.2190  0.6838  0.6945
+m4_ml_add        272   0.6278  0.2188  0.6838  0.6945
+
+--- holdout ---
+                   n  logloss   brier     acc     auc
+model                                                
+model_specB      543   0.6290  0.2192  0.6593  0.7038
+m0_fixed135      543   0.6024  0.2077  0.6832  0.7390
+m1_fixed_hat     543   0.6011  0.2072  0.6832  0.7390
+m2_logit_spread  543   0.5977  0.2059  0.6832  0.7390
+m3_ml_mult       543   0.5984  0.2061  0.6851  0.7396
+m4_ml_shin       543   0.5979  0.2060  0.6851  0.7396
+m4_ml_power      543   0.5971  0.2058  0.6851  0.7396
+m4_ml_add        543   0.5975  0.2059  0.6851  0.7396
+
+============================================================================================
+HOLDOUT GAP: model spec B minus each market construction (positive = model WORSE)
+blocked bootstrap by season-week, 4000 reps
+============================================================================================
+                   diff              lo              hi        
+metric            brier logloss   brier logloss   brier logloss
+benchmark                                                      
+m0_fixed135      0.0115  0.0266  0.0032  0.0072  0.0216  0.0497
+m1_fixed_hat     0.0120  0.0279  0.0038  0.0087  0.0220  0.0509
+m2_logit_spread  0.0133  0.0313  0.0052  0.0129  0.0231  0.0540
+m3_ml_mult       0.0131  0.0306  0.0051  0.0122  0.0228  0.0528
+m4_ml_add        0.0133  0.0314  0.0053  0.0127  0.0230  0.0537
+m4_ml_power      0.0134  0.0318  0.0053  0.0130  0.0231  0.0542
+m4_ml_shin       0.0132  0.0310  0.0052  0.0124  0.0229  0.0532
+
+--- market vs market (holdout): which market representation is best? ---
+  m2_logit_spread    - m3_ml_mult       logloss -0.0007  [-0.0044,+0.0028]
+  m0_fixed135        - m3_ml_mult       logloss +0.0040  [-0.0022,+0.0099]
+  m2_logit_spread    - m0_fixed135      logloss -0.0047  [-0.0092,-0.0003]
+  m3_ml_mult         - m4_ml_shin       logloss +0.0005  [-0.0003,+0.0012]
+
+============================================================================================
+METRIC SENSITIVITY: rank of each model under log loss vs Brier vs acc (holdout)
+============================================================================================
+                 logloss_rank  brier_rank  acc_rank  auc_rank
+model                                                        
+model_specB               8.0         8.0       8.0       8.0
+m0_fixed135               7.0         7.0       6.0       6.0
+m1_fixed_hat              6.0         6.0       6.0       6.0
+m2_logit_spread           3.0         3.0       6.0       6.0
+m3_ml_mult                5.0         5.0       2.5       2.5
+m4_ml_shin                4.0         4.0       2.5       2.5
+m4_ml_power               1.0         1.0       2.5       2.5
+m4_ml_add                 2.0         2.0       2.5       2.5
+
+Murphy (Brier) decomposition, holdout:
+          model    REL    RES    UNC  brier  skill_vs_climatology
+    model_specB 0.0040 0.0348 0.2487 0.2192                0.0308
+m2_logit_spread 0.0029 0.0450 0.2487 0.2059                0.0421
+     m3_ml_mult 0.0024 0.0445 0.2487 0.2061                0.0421
+
+============================================================================================
+RELIABILITY (holdout 2024-25)
+============================================================================================
+
+-- model_specB --
+        bin   n  p_mean  y_mean    gap
+[0.00,0.20)   9   0.162   0.444  0.283
+[0.20,0.30)  32   0.259   0.344  0.084
+[0.30,0.40)  72   0.358   0.292 -0.066
+[0.40,0.50) 110   0.450   0.382 -0.068
+[0.50,0.60) 103   0.549   0.515 -0.035
+[0.60,0.70) 101   0.650   0.644 -0.006
+[0.70,0.80)  73   0.744   0.822  0.078
+[0.80,1.00)  43   0.851   0.814 -0.037
+
+-- m2_logit_spread --
+        bin   n  p_mean  y_mean    gap
+[0.00,0.20)  10   0.155   0.100 -0.055
+[0.20,0.30)  55   0.260   0.218 -0.042
+[0.30,0.40)  96   0.356   0.333 -0.023
+[0.40,0.50)  63   0.421   0.429  0.008
+[0.50,0.60) 106   0.574   0.557 -0.017
+[0.60,0.70)  92   0.648   0.696  0.048
+[0.70,0.80)  78   0.736   0.718 -0.018
+[0.80,1.00)  43   0.855   0.930  0.075
+
+-- m3_ml_mult --
+        bin  n  p_mean  y_mean    gap
+[0.00,0.20) 11   0.159   0.091 -0.068
+[0.20,0.30) 48   0.254   0.229 -0.025
+[0.30,0.40) 76   0.350   0.316 -0.034
+[0.40,0.50) 88   0.444   0.398 -0.046
+[0.50,0.60) 97   0.557   0.577  0.020
+[0.60,0.70) 92   0.646   0.652  0.006
+[0.70,0.80) 85   0.745   0.718 -0.027
+[0.80,1.00) 46   0.855   0.935  0.080
+
+Cox recalibration on holdout: logit(y) ~ a + b*logit(p). Well-calibrated => a=0, b=1.
+  model_specB        a=-0.058 (se 0.095)  b=0.988 (se 0.132)
+  m2_logit_spread    a=-0.021 (se 0.096)  b=1.167 (se 0.130)
+  m3_ml_mult         a=-0.066 (se 0.097)  b=1.158 (se 0.130)
+
+============================================================================================
+Decompose the holdout gap: refit each model's calibration ON THE HOLDOUT
+(oracle recalibration -- upper bound on what calibration repair could buy)
+============================================================================================
+  model_specB        as-is 0.6290 -> oracle-recalibrated 0.6286
+  m2_logit_spread    as-is 0.5977 -> oracle-recalibrated 0.5961
+  m3_ml_mult         as-is 0.5984 -> oracle-recalibrated 0.5968
+
+============================================================================================
+DOES THE MODEL ADD ANYTHING TO THE MARKET? logit(y) ~ spread + model features
+fit on TRAIN, scored on holdout. This is the only question that matters if
+the market is available at prediction time.
+============================================================================================
+                    Coef.  Std.Err.        z   P>|z|  [0.025  0.975]
+const             -0.0497    0.0520  -0.9546  0.3398 -0.1517  0.0523
+spread_home        0.1466    0.0143  10.2279  0.0000  0.1185  0.1747
+off_epa_noto_diff  0.0027    0.0724   0.0369  0.9705 -0.1392  0.1445
+def_epa_noto_diff -0.1221    0.0567  -2.1544  0.0312 -0.2332 -0.0110
+to_margin_diff     0.0538    0.0534   1.0090  0.3130 -0.0507  0.1584
+
+holdout logloss  spread-only 0.5977   spread+features 0.5994
+difference (neg = features help): +0.0017  95% CI [-0.0045,+0.0088]

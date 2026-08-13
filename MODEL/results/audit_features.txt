@@ -1,0 +1,192 @@
+games 3140 (ties dropped), seasons 2014-2025
+CV seasons 2016-2022, 1814 held-out games
+
+==============================================================================
+A. HOW MANY REAL DIMENSIONS ARE IN THE FEATURE SPACE?
+==============================================================================
+43 net differentials, 2325 train games
+variance explained by PC1..PC6: [45.1, 7.7, 6.0, 4.7, 4.4, 3.8] %
+cumulative:                     [45.1, 52.8, 58.8, 63.4, 67.8, 71.6] %
+Horn parallel analysis retains 9 components (eigenvalue > 95th pct of permuted null)
+  eigen vs null (first 8): 19.38/1.29, 3.31/1.26, 2.57/1.24, 2.02/1.22, 1.89/1.20, 1.63/1.19, 1.39/1.17, 1.24/1.16
+
+PC1 loadings (|top 12|):
+net_epa_diff                0.223
+net_pts_per_drive_diff      0.218
+net_pass_epa_diff           0.213
+net_dropback_epa_diff       0.213
+net_score_rate_diff         0.210
+net_epa_noto_diff           0.210
+net_td_per_drive_diff       0.210
+net_series_conv_diff        0.208
+net_first_down_rate_diff    0.201
+net_early_epa_diff          0.199
+net_disaster_rate_diff      0.199
+net_sr_diff                 0.192
+
+PC2 loadings (|top 10|):
+net_to_rate_diff             0.378
+net_to_all_rate_diff         0.376
+net_int_rate_diff            0.337
+net_epa_sd_diff             -0.301
+net_three_out_rate_diff     -0.232
+net_fumble_lost_rate_diff    0.227
+net_sr_noto_diff            -0.199
+net_tfl_rate_diff           -0.199
+net_yac_epa_diff             0.183
+net_fumble_rate_diff         0.172
+
+PC3 loadings (|top 10|):
+net_rush_epa_diff           -0.448
+net_early_rush_epa_diff     -0.426
+net_rush_expl_rate_diff     -0.354
+net_pass_oe_diff             0.326
+net_fumble_lost_rate_diff   -0.238
+net_pen_yds_rate_diff        0.199
+net_pen_rate_diff            0.186
+net_fumble_rate_diff        -0.180
+net_cpoe_diff                0.174
+net_yac_epa_diff             0.155
+
+PREDICTIVE dimensionality: cumulative PCs as logit features (CV log loss)
+PCs are refit inside each CV fold on training seasons only.
+ n_pc  cv_logloss  cv_acc  d_vs_prev      lo     hi  boot_p
+    1      0.6395  0.6318        NaN     NaN    NaN     NaN
+    2      0.6406  0.6301     0.0010 -0.0006 0.0025   0.202
+    3      0.6402  0.6340    -0.0003 -0.0013 0.0006   0.496
+    4      0.6400  0.6307    -0.0003 -0.0009 0.0004   0.418
+    5      0.6393  0.6284    -0.0006 -0.0023 0.0012   0.529
+    6      0.6400  0.6307     0.0006 -0.0012 0.0025   0.545
+    7      0.6389  0.6295    -0.0011 -0.0024 0.0002   0.086
+    8      0.6384  0.6334    -0.0005 -0.0024 0.0014   0.620
+    9      0.6396  0.6378     0.0012 -0.0008 0.0031   0.210
+   10      0.6411  0.6384     0.0015 -0.0001 0.0033   0.064
+
+==============================================================================
+B. UNIVARIATE SCREEN (each net differential alone, forward-chaining CV)
+==============================================================================
+intercept-only CV log loss = 0.6890
+                  feature  cv_logloss  cv_acc  d_vs_null      lo      hi  boot_p
+   net_pts_per_drive_diff      0.6398  0.6362    -0.0492 -0.0643 -0.0338   0.000
+      net_score_rate_diff      0.6420  0.6279    -0.0469 -0.0611 -0.0314   0.000
+             net_epa_diff      0.6425  0.6284    -0.0464 -0.0606 -0.0317   0.000
+    net_dropback_epa_diff      0.6449  0.6367    -0.0441 -0.0581 -0.0300   0.000
+    net_td_per_drive_diff      0.6460  0.6235    -0.0429 -0.0568 -0.0287   0.000
+       net_early_epa_diff      0.6471  0.6218    -0.0419 -0.0542 -0.0289   0.000
+        net_pass_epa_diff      0.6477  0.6356    -0.0413 -0.0543 -0.0278   0.000
+        net_epa_noto_diff      0.6486  0.6257    -0.0404 -0.0534 -0.0268   0.000
+              net_sr_diff      0.6488  0.6224    -0.0401 -0.0516 -0.0283   0.000
+ net_first_down_rate_diff      0.6510  0.6180    -0.0379 -0.0496 -0.0249   0.000
+  net_early_pass_epa_diff      0.6521  0.6141    -0.0368 -0.0481 -0.0239   0.000
+     net_series_conv_diff      0.6526  0.6163    -0.0363 -0.0490 -0.0233   0.000
+         net_sr_noto_diff      0.6526  0.6163    -0.0363 -0.0474 -0.0256   0.000
+   net_disaster_rate_diff      0.6574  0.6152    -0.0315 -0.0437 -0.0187   0.000
+       net_expl_rate_diff      0.6611  0.5965    -0.0279 -0.0393 -0.0165   0.000
+         net_rz_rate_diff      0.6617  0.5937    -0.0273 -0.0390 -0.0148   0.000
+  net_pass_expl_rate_diff      0.6645  0.6053    -0.0244 -0.0361 -0.0131   0.000
+            net_cpoe_diff      0.6660  0.5943    -0.0229 -0.0337 -0.0122   0.000
+         net_to_rate_diff      0.6662  0.5904    -0.0228 -0.0326 -0.0130   0.000
+     net_to_all_rate_diff      0.6665  0.5877    -0.0225 -0.0333 -0.0117   0.000
+         net_yac_epa_diff      0.6684  0.5981    -0.0205 -0.0291 -0.0121   0.000
+      net_third_conv_diff      0.6685  0.5932    -0.0205 -0.0317 -0.0090   0.002
+       net_sack_rate_diff      0.6685  0.5816    -0.0204 -0.0295 -0.0116   0.000
+       net_third_epa_diff      0.6688  0.6025    -0.0201 -0.0313 -0.0094   0.000
+     net_start_yl100_diff      0.6715  0.5739    -0.0174 -0.0262 -0.0090   0.001
+  net_early_rush_epa_diff      0.6740  0.5562    -0.0150 -0.0222 -0.0079   0.001
+        net_rush_epa_diff      0.6750  0.5673    -0.0139 -0.0221 -0.0057   0.002
+        net_int_rate_diff      0.6751  0.5827    -0.0139 -0.0219 -0.0057   0.001
+  net_rush_expl_rate_diff      0.6768  0.5573    -0.0122 -0.0180 -0.0065   0.000
+     net_qb_hit_rate_diff      0.6780  0.5634    -0.0110 -0.0191 -0.0029   0.008
+          net_epa_sd_diff      0.6805  0.5667    -0.0084 -0.0154 -0.0019   0.016
+      net_rz_td_rate_diff      0.6807  0.5595    -0.0083 -0.0136 -0.0029   0.002
+ net_plays_per_drive_diff      0.6807  0.5722    -0.0083 -0.0179  0.0010   0.082
+  net_three_out_rate_diff      0.6822  0.5755    -0.0067 -0.0180  0.0037   0.191
+     net_fumble_rate_diff      0.6826  0.5590    -0.0064 -0.0122  0.0000   0.051
+net_fumble_lost_rate_diff      0.6833  0.5524    -0.0056 -0.0110 -0.0003   0.029
+          net_st_epa_diff      0.6860  0.5524    -0.0029 -0.0084  0.0024   0.300
+    net_pen_yds_rate_diff      0.6881  0.5469    -0.0009 -0.0023  0.0004   0.189
+    net_sec_per_play_diff      0.6888  0.5485    -0.0002 -0.0012  0.0009   0.689
+        net_pen_rate_diff      0.6888  0.5485    -0.0001 -0.0007  0.0004   0.630
+         net_pass_oe_diff      0.6890  0.5469     0.0000 -0.0014  0.0014   0.992
+        net_tfl_rate_diff      0.6894  0.5485     0.0004 -0.0014  0.0023   0.623
+         net_air_epa_diff      0.6900  0.5474     0.0010  0.0000  0.0020   0.039
+
+==============================================================================
+C. INCREMENTAL VALUE BEYOND THE CORE  ['net_epa_noto_diff', 'net_to_rate_diff']
+Does any candidate add out-of-sample information once the EPA core is in?
+==============================================================================
+core CV log loss = 0.6415   acc = 0.6229
+                    added  cv_logloss   delta      lo      hi  boot_p  bh_q10
+          net_st_epa_diff      0.6390 -0.0025 -0.0072  0.0023   0.289   False
+         net_sr_noto_diff      0.6395 -0.0020 -0.0037 -0.0002   0.026   False
+              net_sr_diff      0.6395 -0.0020 -0.0038 -0.0002   0.034   False
+    net_pen_yds_rate_diff      0.6395 -0.0020 -0.0043  0.0002   0.087   False
+      net_score_rate_diff      0.6405 -0.0010 -0.0063  0.0037   0.690   False
+        net_pen_rate_diff      0.6407 -0.0009 -0.0021  0.0003   0.166   False
+     net_qb_hit_rate_diff      0.6408 -0.0008 -0.0033  0.0017   0.518   False
+  net_rush_expl_rate_diff      0.6408 -0.0007 -0.0020  0.0007   0.309   False
+       net_early_epa_diff      0.6409 -0.0006 -0.0019  0.0006   0.322   False
+   net_pts_per_drive_diff      0.6411 -0.0005 -0.0053  0.0044   0.839   False
+  net_early_pass_epa_diff      0.6413 -0.0002 -0.0014  0.0009   0.726   False
+    net_sec_per_play_diff      0.6414 -0.0002 -0.0008  0.0005   0.629   False
+         net_air_epa_diff      0.6414 -0.0001 -0.0013  0.0011   0.840   False
+          net_epa_sd_diff      0.6414 -0.0001 -0.0023  0.0021   0.877   False
+         net_yac_epa_diff      0.6415 -0.0000 -0.0010  0.0009   0.921   False
+      net_rz_td_rate_diff      0.6416  0.0001 -0.0004  0.0006   0.838   False
+  net_pass_expl_rate_diff      0.6416  0.0001 -0.0007  0.0008   0.859   False
+ net_first_down_rate_diff      0.6416  0.0001 -0.0013  0.0015   0.909   False
+    net_td_per_drive_diff      0.6417  0.0001 -0.0012  0.0014   0.852   False
+            net_cpoe_diff      0.6417  0.0001 -0.0015  0.0019   0.850   False
+  net_early_rush_epa_diff      0.6417  0.0002 -0.0004  0.0007   0.584   False
+         net_pass_oe_diff      0.6417  0.0002 -0.0005  0.0010   0.570   False
+       net_sack_rate_diff      0.6418  0.0002 -0.0021  0.0025   0.885   False
+             net_epa_diff      0.6418  0.0002 -0.0004  0.0010   0.535   False
+        net_tfl_rate_diff      0.6418  0.0002 -0.0005  0.0011   0.506   False
+    net_dropback_epa_diff      0.6418  0.0003 -0.0009  0.0014   0.592   False
+        net_pass_epa_diff      0.6418  0.0003 -0.0003  0.0009   0.292   False
+        net_rush_epa_diff      0.6419  0.0004 -0.0004  0.0011   0.377   False
+       net_third_epa_diff      0.6420  0.0004 -0.0006  0.0015   0.413   False
+net_fumble_lost_rate_diff      0.6421  0.0005 -0.0002  0.0012   0.134   False
+   net_disaster_rate_diff      0.6421  0.0006 -0.0002  0.0014   0.118   False
+        net_int_rate_diff      0.6422  0.0006 -0.0002  0.0014   0.111   False
+     net_start_yl100_diff      0.6422  0.0007 -0.0003  0.0017   0.184   False
+       net_expl_rate_diff      0.6423  0.0007 -0.0001  0.0015   0.086   False
+         net_rz_rate_diff      0.6424  0.0009 -0.0003  0.0020   0.142   False
+     net_fumble_rate_diff      0.6426  0.0011 -0.0004  0.0025   0.173   False
+     net_to_all_rate_diff      0.6427  0.0011 -0.0018  0.0039   0.432   False
+     net_series_conv_diff      0.6430  0.0015 -0.0006  0.0035   0.165   False
+      net_third_conv_diff      0.6433  0.0018 -0.0010  0.0049   0.235   False
+ net_plays_per_drive_diff      0.6435  0.0019 -0.0006  0.0046   0.151   False
+  net_three_out_rate_diff      0.6467  0.0052  0.0001  0.0105   0.046   False
+
+surviving BH-FDR q=0.10 across 41 candidates: NONE
+
+==============================================================================
+D. GREEDY FORWARD SELECTION ON FORWARD-CHAINING CV
+stop when the best remaining addition is not significant by paired bootstrap
+==============================================================================
+start (intercept only): 0.6890
+step 1: + net_pts_per_drive_diff       ll=0.6398  delta=-0.0492 [-0.0640,-0.0335] p=0.000 KEEP
+step 2: + net_pen_yds_rate_diff        ll=0.6382  delta=-0.0016 [-0.0039,+0.0005] p=0.135 STOP (noise)
+
+selected: ['net_pts_per_drive_diff']
+
+==============================================================================
+E. IS OPPONENT ADJUSTMENT / THE TWO-STAGE PRIOR EARNING ITS COMPLEXITY?
+same features, same CV, three estimators of the same latent quantity
+==============================================================================
+  v2adj: CV log loss 0.6415   acc 0.6229
+  v2raw: CV log loss 0.6437   acc 0.6318
+  v1adj: CV log loss 0.6382   acc 0.6367
+
+  opponent adjustment (adj - raw): -0.0021 [-0.0126,+0.0084] p=0.660  -> NOISE
+  two-stage prior (v2 - v1): +0.0033 [-0.0032,+0.0095] p=0.307  -> NOISE
+
+==============================================================================
+F. NET vs SEPARATE OFF/DEF (is collapsing to a net differential justified?)
+==============================================================================
+  net form   : 0.6415
+  split form : 0.6372
+  split - net: -0.0044 [-0.0078,-0.0009] p=0.014
+  (negative would mean the split is better; a CI covering 0 says the
+   equal-weights restriction O and D costs nothing)
