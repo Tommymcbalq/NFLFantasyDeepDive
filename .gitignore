@@ -19,3 +19,4 @@ __pycache__/
 
 # MODEL/ raw data caches (separate sub-project) — re-downloadable
 MODEL/data/
+CASHMODEL/
