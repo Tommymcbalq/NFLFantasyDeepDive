@@ -1,0 +1,44 @@
+policy,first,then,then_pos,p_given_first,n_first
+board,Christian McCaffrey,Derrick Henry,RB,0.9228675136116152,1102
+board,Christian McCaffrey,De'Von Achane,RB,0.05989110707803993,1102
+board,Christian McCaffrey,Chase Brown,RB,0.010889292196007259,1102
+board,Christian McCaffrey,Saquon Barkley,RB,0.003629764065335753,1102
+board,Christian McCaffrey,Omarion Hampton,RB,0.0018148820326678765,1102
+board,Christian McCaffrey,James Cook III,RB,0.0009074410163339383,1102
+board,Amon-Ra St. Brown,Derrick Henry,RB,0.9052631578947369,95
+board,Amon-Ra St. Brown,De'Von Achane,RB,0.07368421052631578,95
+board,Amon-Ra St. Brown,Chase Brown,RB,0.021052631578947368,95
+board,Bijan Robinson,Derrick Henry,RB,1.0,3
+board+dRB,Christian McCaffrey,Derrick Henry,RB,0.9272237196765498,1113
+board+dRB,Christian McCaffrey,De'Von Achane,RB,0.0431266846361186,1113
+board+dRB,Christian McCaffrey,Chase Brown,RB,0.019766397124887692,1113
+board+dRB,Christian McCaffrey,Omarion Hampton,RB,0.006289308176100629,1113
+board+dRB,Christian McCaffrey,Saquon Barkley,RB,0.0026954177897574125,1113
+board+dRB,Christian McCaffrey,Jonathan Taylor,RB,0.0008984725965858042,1113
+board+dRB,Jonathan Taylor,Derrick Henry,RB,0.9404761904761905,84
+board+dRB,Jonathan Taylor,De'Von Achane,RB,0.05952380952380952,84
+board+dRB,Jahmyr Gibbs,Derrick Henry,RB,1.0,1
+board+dRB,Bijan Robinson,Derrick Henry,RB,1.0,2
+lineup_marginal,Christian McCaffrey,Derrick Henry,RB,0.9110320284697508,1124
+lineup_marginal,Christian McCaffrey,De'Von Achane,RB,0.06405693950177936,1124
+lineup_marginal,Christian McCaffrey,Chase Brown,RB,0.016903914590747332,1124
+lineup_marginal,Christian McCaffrey,Omarion Hampton,RB,0.0071174377224199285,1124
+lineup_marginal,Christian McCaffrey,James Cook III,RB,0.0008896797153024911,1124
+lineup_marginal,Amon-Ra St. Brown,Derrick Henry,RB,0.971830985915493,71
+lineup_marginal,Amon-Ra St. Brown,De'Von Achane,RB,0.028169014084507043,71
+lineup_marginal,Ja'Marr Chase,Derrick Henry,RB,1.0,2
+lineup_marginal,Jahmyr Gibbs,Derrick Henry,RB,1.0,1
+lineup_marginal,Bijan Robinson,Derrick Henry,RB,1.0,2
+lineup_marginal+dRB,Christian McCaffrey,Derrick Henry,RB,0.9208185053380783,1124
+lineup_marginal+dRB,Christian McCaffrey,De'Von Achane,RB,0.051601423487544484,1124
+lineup_marginal+dRB,Christian McCaffrey,Chase Brown,RB,0.018683274021352312,1124
+lineup_marginal+dRB,Christian McCaffrey,Omarion Hampton,RB,0.0071174377224199285,1124
+lineup_marginal+dRB,Christian McCaffrey,Saquon Barkley,RB,0.0008896797153024911,1124
+lineup_marginal+dRB,Christian McCaffrey,Jonathan Taylor,RB,0.0008896797153024911,1124
+lineup_marginal+dRB,Jonathan Taylor,Derrick Henry,RB,0.8888888888888888,72
+lineup_marginal+dRB,Jonathan Taylor,De'Von Achane,RB,0.05555555555555555,72
+lineup_marginal+dRB,Jonathan Taylor,Omarion Hampton,RB,0.027777777777777776,72
+lineup_marginal+dRB,Jonathan Taylor,Chase Brown,RB,0.027777777777777776,72
+lineup_marginal+dRB,Bijan Robinson,Derrick Henry,RB,1.0,1
+lineup_marginal+dRB,Ja'Marr Chase,Derrick Henry,RB,1.0,2
+lineup_marginal+dRB,Jahmyr Gibbs,Derrick Henry,RB,1.0,1

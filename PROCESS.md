@@ -739,3 +739,61 @@ Golden, Tate, Henry, Sutton, Johnston for the deep-board extension.
 
 Scripts `60_sectionV_flat_top.py`, `61_board_0824.py`; results `sectionV_scorecard.csv`,
 `sectionV_flattop_loso.csv`, `board_2026_v4_0824.csv`. REPORT.md §43.
+
+## Round 9 (2026-08-24/25) — the stack rebuilt as one architecture
+
+Pre-registered in `EDA_PLAN9.md`; three researchers on separable layers (WS1 projection, WS2
+valuation stack, WS3 draft engine). Reader-facing summary: `MODEL.md`. Full derivations:
+REPORT.md §46–48.
+
+**WS1 — projection from inputs: REJECTED, ninth null.** Nested test on a calibrated age-aware μ̂:
+WR +0.249 (p=.404, MDE 0.895 — uninformative), RB **−0.295**. Trees lose everywhere as
+pre-registered. Two real findings inside the null, both defects in the incumbent: **μ̂ is
+over-dispersed (calibration slope 0.667 WR / 0.605 RB)** and **age belongs inside μ̂** (+1.18/+1.31,
+9/10 folds) — the latter being essentially the only correctable error in the RB data arm. The
+parsimonious `calibrated μ̂ + age` spec was found by decomposition not pre-registration, so it is
+NOT adopted; round-10 candidate. Also: availability-as-input rejected (out-of-sample R² 0.039/0.018;
+the naive μ̂×availability multiplier is **significantly worse than nothing**, −2.36 p=.0085,
+vindicating the owner's refusal), §P's ≥12-games interaction **withdrawn** (collapses to +0.043 once
+a projection replaces μ̂ — it was a symptom of μ̂ ignoring age/games), and a leak found in shared
+data: **FFC historical ADP `team` is an end-of-season label** (matches final team 88%, week-1 7%).
+
+**WS2 — a units defect that was doing real damage.** Values are points per game *played*;
+replacement was season total ÷ 17, i.e. per *scheduled* week. Not cancelling in the cross-position
+contrast, which is the only thing VORP is for. The naive repair (rank by total, read PPG) breaks
+identification — it selects toward short high-rate seasons; 2024 WR64 was Diggs at 121.9 pts in 8
+games. **Adopted: PPG rank among players with ≥8 games** → QB 15.17 / RB 7.47 / TE 9.79 / WR 7.92.
+Board is insensitive to the threshold (Spearman ≥.995 across g∈[4,12]) while the rejected estimand
+moves it more — identification dominates tuning. δ_RB implemented as a **structural view** (Ω→0
+limit of group absolute views, asserted numerically), sized 1.40 as the smallest value consistent
+with both revealed-preference inequalities, and kept **out of the January-scoreable column**. ESPN
+historical ADP **rejected as hindsight-contaminated** — it drives FFC to zero against outcomes
+(p=.881/.129), which a genuine preseason price cannot do. Ablation: **positional replacement does
+almost all the work** (Spearman .768 without it) and the EB arm least (.9996), since §P4 restricts
+it to 30 of 204 players.
+
+**WS3 — where the edge actually is.** Flat-vs-step formalised as
+W_p = Σ E[δ_i·1(N_p≥i)] — steps enter linearly and unbounded, decay only through bounded indicators.
+§M's verdict **hardens**: 0/4 beat ADP and all four now lose significantly; mechanism chased to
+roster mix (best-available-by-VORP builds 2 RB / 10 WR; constrain to 4 RB by round 7 and the gap
+vanishes, −4.2 ± 15.9). *The board's ordering is a wash with ADP; its roster mix was the problem.*
+And the sharpest result: **the ADP null scores +169 season points against the biased room** versus
+against ADP opponents — the edge is the room's bias, not the board.
+
+**The architectural change.** Simulated availability is removed from the pipeline. It produced 84%
+for a player the owner says is 0%, and 1% for one whose belief is explicitly bimodal — a normal-CDF
+survival model cannot represent "falls to me or goes right before." Availability is now a **declared
+input** (`data/drafts/availability_priors.csv`), and `scripts/74_decide.py` refuses to run without it
+rather than substituting a guess. Same discipline as Ω in §26. Steps 1–7 assert value; steps 8–10
+take availability as given and compute the decision.
+
+**Live-draft infrastructure added:** Sleeper's public API (`api.sleeper.app/v1/draft/{id}/picks`)
+gives the full draft with slots and ownership, so no scraping is needed —
+`data/drafts/league_draft_2026_sleeper.csv` (150 picks, mock). Owner prediction calibration recorded
+in `data/drafts/prediction_calibration_2026.md`: **20/20 set recall over picks 7–26, mean slot error
+1.40** — the set is near-deterministic and only the order is noisy, which is the strongest evidence
+yet for §R's viability and simultaneously the reason its simulated survival curves were not usable.
+
+**Carried to round 10:** (1) `calibrated μ̂ + age` as a pre-registered spec; (2) the WR replacement
+identification is still the weakest number in L5 — 2024 leaned on one 8-game observation; (3)
+τ-persistence pre-test remains unrunnable at n = 1 draft.

@@ -2692,7 +2692,7 @@ Artefacts: `scripts/59_sectionS_bakeoff.py`, `scripts/59b_sectionS_diagnostics.p
 
 ---
 
-## 43. §V — The flat top of m(ADP): artifact or finding?
+## 44. §V — The flat top of m(ADP): artifact or finding?
 
 ### 43.1 The defect, and why it mattered
 
@@ -2796,3 +2796,680 @@ recorded as one (`v40_chase`, owner-set, dated, scoreable).
 **CIR is retained as the pre-registered candidate for the next confirmatory round**, on the same
 terms as the h = 2 prior in §39.5: it improves both metrics in the right direction on a family of
 three, and it deserves a single-arm test on a design that has not already been used to select it.
+
+---
+
+# Part VIII — Round 8: The Draft Itself
+
+## 45. §R — The behavioral draft model, built
+
+*Pre-registered in `EDA_PLAN8.md` §R on 2026-08-24, mid-draft, before any fitting. Owner's
+specification: `fantasy_draft_model.md`. Binding constraints recorded in §38: scale
+identification (1) and the τ-persistence pre-test (2). Outputs: `scripts/60_draft_model.py`,
+`results/sectionR_notes.md`, `results/survival_curves.csv`, `results/vona.csv`.*
+
+### 44.0 Why this section exists, and what it is for
+
+Every section up to here answers a question about a *player*: what is he worth, and how
+confident should we be. This one answers a question about a *pick*: given that the board is
+already built and frozen, which player should be taken now rather than later. Those are
+different questions and the second one does not reduce to the first. A manager holding the
+best board in the league still has to decide whether to take the 2.37-point tight end now or
+the 6.75-point quarterback now, and the answer depends not on which number is larger but on
+**which one will still be there at his next pick**. That is a statement about the other nine
+managers, not about football.
+
+So §R is the first part of this project whose object of study is the *room*. It was
+deliberately not built until there was a draft log to fit it on (§38 recorded it as
+SPECIFIED-NOT-BUILT for exactly that reason). There is now one: `league_draft_2026.csv`, 87
+picks of the owner's live 10-team league with traded-pick ownership resolved.
+
+### 44.1 Notation
+
+Everything below is added to the symbol table.
+
+| symbol | meaning |
+|---|---|
+| $t$ | a pick, indexed by overall pick number $1,\dots,150$ |
+| $m(t)$ | the manager (team slot $1,\dots,10$) picking at $t$ |
+| $\mathcal{A}_t$ | the **available set**: board players not yet drafted when $t$ is on the clock |
+| $j, k$ | players, indexing members of $\mathcal{A}_t$ |
+| $v_j$ | the player's board value — the `final` column of `board_2026.csv`, in PPG-above-replacement |
+| $n_{m,p,t}$ | count of position $p$ already on manager $m$'s roster at time $t$ |
+| $\text{req}_p$ | base starter requirement: QB 1, RB 2, WR 2, TE 1 |
+| $\text{need}_{m,p,t}$ | $\max(0,\ \text{req}_p - n_{m,p,t})$ — unfilled *base* starter slots at $p$ |
+| $\text{flex}_{m,t}$ | $\max\!\big(0,\ 2 - [(n_{m,\text{RB},t}-2)_+ + (n_{m,\text{WR},t}-2)_+]\big)$ |
+| $U_{jt}$ | utility of player $j$ to the manager on the clock at $t$ |
+| $\tau$ | softmax temperature. **Fixed at 1** (§38(1)); the reported temperature is $1/\beta_v$ |
+| $\beta_v$ | the value-loading coefficient — how sharply the room follows the board |
+| $\beta_p$ | need coefficient for position $p$ |
+| $\alpha_p$ | positional intercept for $p$, WR as reference |
+| $\theta$ | the full coefficient vector $(\beta_v, \beta_\cdot, \alpha_\cdot, \beta_{\text{flex}})$ |
+| $\lambda$ | off-board hazard: probability a simulated pick takes a player outside our 204-man universe |
+| $S_j(k)$ | **survival probability**: $\Pr(j \in \mathcal{A}_k)$, player $j$ still available at pick $k$ |
+| $L(\mathcal{R})$ | starting-lineup value of roster $\mathcal{R}$ under 1QB/2RB/2WR/1TE/2FLEX |
+| $\text{VONA}_p$ | value over next available at $p$ — defined two ways in §44.6, and the distinction matters |
+
+### 44.2 One pick as a discrete choice — the intuition before the algebra
+
+The generative story is deliberately simple. A manager on the clock looks at the players
+still on the board, forms a private worth for each one, and takes the best. His worth is our
+board value plus adjustments for what his roster still needs, plus idiosyncratic noise we
+cannot observe — a hunch, a highlight he saw, a name he likes.
+
+If that unobserved noise is i.i.d. Type-I extreme value, then the probability the highest
+private worth belongs to player $j$ has a closed form — the multinomial logit. This is
+McFadden's random-utility result, and it is why the softmax is not an arbitrary choice of
+link function but the *consequence* of an assumption about how a manager's private noise is
+distributed. It is also equivalent to Luce's choice axiom: the odds of taking $j$ over $k$
+do not depend on who else is on the board.
+
+That last property — independence of irrelevant alternatives — is the model's main
+substantive limitation and it should be named up front. It implies that when the top WR is
+taken, the probability mass redistributes proportionally over *everyone* rather than
+concentrating on the next WR. Real drafts do not work that way: positional runs are exactly
+the failure of IIA. The `need` terms are the model's answer — they are state-dependent, so
+when a position empties, every manager who still needs it gets a simultaneous utility bump
+and a run emerges endogenously. That is the mechanism `fantasy_draft_model.md` describes
+under "tier cliffs", and it is why the need terms are not decoration.
+
+### 44.3 The likelihood, derived
+
+Write the utility of player $j$ to the manager on the clock at $t$ as an observable part
+plus noise:
+
+$$U_{jt} = \underbrace{x_{jt}^\top \theta}_{\text{observed}} + \varepsilon_{jt}, \qquad \varepsilon_{jt} \overset{iid}{\sim} \text{Gumbel}(0, \tau).$$
+
+The manager takes $\arg\max_{j \in \mathcal{A}_t} U_{jt}$. For Gumbel noise, $\Pr(U_{jt} >
+U_{kt}\ \forall k \neq j)$ integrates to
+
+$$\Pr(\text{pick}_t = j \mid \mathcal{A}_t) = \frac{\exp(x_{jt}^\top\theta / \tau)}{\sum_{k \in \mathcal{A}_t} \exp(x_{kt}^\top\theta / \tau)}. \tag{44.1}$$
+
+**Only the ratio $\theta/\tau$ appears.** Multiplying $\theta$ by $c$ and $\tau$ by $c$ leaves
+(44.1) exactly unchanged, so the two are not separately identified — the likelihood is
+constant along a ridge. §38(1) recorded this in advance and required the normalisation, and
+the reason it is not a technicality is behavioural: a manager who "weights the board lightly
+but drafts sharply" and one who "weights it heavily but drafts noisily" produce identical
+data. Reporting a fitted "temperature" from an unconstrained fit would be reporting a
+coordinate on a ridge and calling it a finding. **We fix $\tau = 1$ and estimate $\beta_v$;
+the temperature is then reported as the derived quantity $1/\beta_v$**, with a delta-method
+standard error $\mathrm{SE}(\beta_v)/\beta_v^2$.
+
+Each of the 87 logged picks is one observation of (44.1) over the set actually available at
+that moment, and the joint likelihood over a draft is the product — which is precisely the
+Plackett–Luce factorisation of a ranking into sequential choices. The log-likelihood is
+
+$$\ell(\theta) = \sum_{t \in \mathcal{T}} \left[ x_{y_t t}^\top \theta - \log \sum_{k \in \mathcal{A}_t} \exp(x_{kt}^\top \theta) \right], \tag{44.2}$$
+
+globally concave in $\theta$ (it is a sum of a linear term and negated log-sum-exps), so the
+maximum is unique whenever it exists. The "whenever it exists" is doing real work — see
+§44.5.
+
+### 44.4 What is in $x_{jt}$, and what was fixed before fitting
+
+Three specifications were written down before any coefficient was inspected:
+
+$$\textbf{M0:}\quad U_{jt} = \beta_v v_j$$
+$$\textbf{M1:}\quad U_{jt} = \beta_v v_j + \sum_p \beta_p\, \text{need}_{m,p,t}\, \mathbb{1}[\text{pos}(j)=p] \qquad \text{(§R1 exactly as written)}$$
+$$\textbf{M2:}\quad U_{jt} = \text{M1} + \sum_{p \neq \text{WR}} \alpha_p \mathbb{1}[\text{pos}(j)=p] + \beta_{\text{flex}}\,\text{flex}_{m,t}\,\mathbb{1}[\text{pos}(j)\in\{\text{RB},\text{WR}\}]$$
+
+M2 was declared in advance for a stated reason, not discovered: the baseline §R requires us
+to beat is an OLS of realised pick on ADP rank *plus positional dummies*, so a specification
+with no positional intercept is not being asked a fair question. And M1 has a structural
+blind spot that is visible from its algebra alone — once a manager has filled his base
+starters, every $\text{need}_{m,p,t} = 0$ and M1 collapses to M0. By round 9, which is
+exactly the horizon this tool is for, that describes most of the room.
+
+**Selection criterion, also declared before fitting: leave-one-pick-out mean predictive
+log-likelihood.** Not in-sample fit, not AIC, and explicitly not hit rate.
+
+**Two design decisions that could have gone the other way.**
+
+*Why the board value and not ADP rank as the covariate.* The spec is emphatic that $v_j$ must
+be a latent worth with tier cliffs rather than a linear rank, because "the drop from top-3 RB
+tier to the next tier is a real gap" and that gap is what makes positions fly off the board.
+Our board already satisfies this **by construction rather than by refitting**: the market
+prior is an isotonic regression of points on ADP (§6.1, §21), and isotonic fits are step
+functions, so `final` is already piecewise-flat with genuine cliffs between steps. Refitting a
+monotone value curve here would have been re-deriving something the board already contains,
+and would have introduced a second, inconsistent notion of value into the project.
+
+*Why the owner's own picks are excluded rather than dummied.* Nine of the 87 picks are his,
+and he does not draft to league consensus — he holds 37 logged personal views (§26, §40),
+which is a different data-generating process by construction. The purpose of this model is to
+predict *what falls to him*, which is a statement about the other nine managers only, so his
+picks are pure contamination of the estimand. The alternative, a dummy, was rejected on
+identification grounds rather than taste: in a softmax over a fixed choice set, a
+manager-level dummy that loads on every alternative equally **cancels out of (44.1)
+identically** — it can only enter through an interaction, i.e. a different $\beta_v$, which on
+nine observations would be estimated on essentially nothing. His picks are retained in the
+state recursion (they still remove players from $\mathcal{A}_t$ and still update his roster);
+they are simply not scored. $n = 78$ opponent choice observations.
+
+### 44.5 The anomaly: quasi-separation at QB, and what it revealed about the board
+
+M2, fitted by plain maximum likelihood, returned $\hat\alpha_{\text{QB}} = -15.3$ **with a
+standard error of 419**. That is not a large effect; it is the signature of a likelihood with
+no interior maximum. Chasing it produced the most informative descriptive result in the
+section.
+
+Tabulating every pick by whether the highest-*value* available board player was a QB:
+
+| | picks | QB actually taken |
+|---|---|---|
+| max-value available was a QB | 22 of 87 | 1 (Josh Allen, pick 40) |
+| …and the manager already had a QB | 5 | **0** |
+
+Zero events in five exposures. The likelihood is monotone increasing as
+$\alpha_{\text{QB}} \to -\infty$ with $\beta_{\text{QB}}^{\text{need}} \to +\infty$ holding
+their sum finite: the MLE does not exist. This is textbook quasi-complete separation, the
+discrete-choice analogue of a logistic regression with a perfectly predictive covariate.
+
+**Why it mattered far beyond a standard error.** Our board's `final` is VORP-scaled against a
+positional replacement level, and there are only 24 startable QBs against 88 WRs. That makes
+Dak Prescott, at $v = 6.75$, the **single most valuable available player on the board at pick
+88** — ahead of every WR and RB. Under M1, which has no $\alpha_{\text{QB}}$ and therefore no
+way to express "a manager who already has a quarterback does not take a quarterback", all
+seven QB-filled managers are modelled as wanting Dak more than anyone else, and the forward
+simulation drains the QB shelf in a way the room demonstrably does not. **M1 is misspecified
+precisely in the region that drives the recommendation**, and — this is the part that keeps
+the finding clean — that was established from the descriptive table above, *before* any VONA
+number was computed.
+
+**The remedy, and why this is not tuning.** The standard fix for separation is penalised
+likelihood — Firth's Jeffreys-prior penalty, or equivalently a weakly-informative ridge. We
+adopt **M2R = M2 with a $\mathcal{N}(0, 5^2)$ ridge on every coefficient except $\beta_v$**:
+
+$$\ell_{\text{pen}}(\theta) = \ell(\theta) - \frac{1}{2\cdot 5^2}\sum_{r \geq 2}\theta_r^2. \tag{44.3}$$
+
+$\beta_v$ is left unpenalised because it carries the scale normalisation $\tau = 1$;
+shrinking it would shrink the temperature toward infinity, which is a substantive claim, not
+a regularisation. The penalty makes the mode finite and the curvature interpretable without
+reordering anything that was already identified — $\hat\alpha_{\text{QB}}$ moves from $-15.3$
+(SE 419) to $-3.41$ (SE 1.79), and every other coefficient moves in the third decimal.
+
+The protocol point must be stated plainly rather than glossed. **M2R was added to the model
+set after M2 was fitted.** It was added because of a *numerical pathology* — a standard error
+of 419 — and before any player-level or VONA output was inspected; it is scored on the same
+pre-declared LOPO criterion as M0, M1 and M2; and because the specification choice does real
+work here, **every downstream output is reported under both M2R and M1, the §R1 specification
+exactly as pre-registered.** Where they disagree, the disagreement is reported as the result.
+
+### 44.6 Fitted parameters
+
+Maximising (44.2)/(44.3) over the 78 opponent picks:
+
+| parameter | M2R (selected) | SE | M1 (§R1 as written) | SE |
+|---|---|---|---|---|
+| $\beta_v$ | **+1.092** | 0.087 | +0.997 | 0.081 |
+| $\beta^{\text{need}}_{\text{QB}}$ | +2.882 | 1.801 | −0.460 | 0.471 |
+| $\beta^{\text{need}}_{\text{RB}}$ | +0.674 | 0.375 | +1.186 | 0.345 |
+| $\beta^{\text{need}}_{\text{TE}}$ | +2.043 | 1.079 | +3.819 | 0.562 |
+| $\beta^{\text{need}}_{\text{WR}}$ | +1.014 | 0.363 | +0.510 | 0.325 |
+| $\alpha_{\text{QB}}$ | −3.406 | 1.787 | — | — |
+| $\alpha_{\text{RB}}$ | +1.662 | 0.405 | — | — |
+| $\alpha_{\text{TE}}$ | +1.975 | 1.103 | — | — |
+| $\beta_{\text{flex}}$ | −0.488 | 0.423 | — | — |
+
+**Implied temperature $1/\hat\beta_v = 0.916$ (SE 0.073).** In words: a gap of 0.92 board
+points between two available players is worth one logit unit of preference. Against an
+undrafted pool spanning about 6 points from top to tenth percentile, that is a **chalky
+room** — the modal pick is usually the obvious one. This is consistent with, though not a
+confirmation of, the 1.40-slot mean error the owner achieved recalling picks 7–26
+(`prediction_calibration_2026.md`); that datapoint was recorded before this fit and remains an
+anecdote about $\tau$ rather than an estimate of it.
+
+Reading the positional intercepts is the substantive payoff. Against a WR baseline, this room
+values an **RB +1.66** and a **TE +1.98** logits above a WR of *identical board value*, and a
+**QB −3.41** below one. Divide by $\hat\beta_v$ to put them in board-value units: the room
+behaves as though an RB is worth 1.5 PPG more than our board says, a TE 1.8 more, and a QB
+3.1 less. The TE number is the same fact the OLS baseline reports as "TE goes 11.9 picks
+earlier than a WR at the same ADP", arrived at independently.
+
+Standard errors are given two ways in `results/sectionR_notes.md`: observed-information, and
+manager-clustered over $G = 10$ clusters. The clustered version is reported for honesty, not
+because it is better — with 10 clusters the sandwich is badly downward-biased and its own
+sampling error is large. **Every number here comes from a single realisation of a single
+draft**, and none of them should be quoted without that qualifier.
+
+**No per-manager layer was fitted.** §38(2) made the persistence pre-test a binding
+pre-condition: estimate $\tau_m$ on one draft, again on another, correlate, and only proceed
+if manager tendency persists. With one draft that test cannot be run, so the per-manager
+layer, the spike-and-slab affinity term and the meta×profile interaction are all deferred
+rather than approximated. This follows the spec's own caution that most of the edge is in the
+tier-cliff value curve, the temperature, and hand-set priors — not in rich per-manager
+estimation.
+
+### 44.7 Validation: calibration, not accuracy
+
+The spec is unambiguous — "validate by calibration, not accuracy" — and the reason is
+structural. The tool's output is not a prediction of who goes next; it is $S_j(k)$, a
+probability. A model that names the modal next pick correctly but is systematically
+overconfident produces survival curves that are wrong in the direction that matters, because
+VONA is an expectation *against* those probabilities.
+
+**Leave-one-pick-out.** Refit without pick $t$, predict the full distribution over
+$\mathcal{A}_t$, score the realised choice. The baseline is the ADP+position OLS, converted
+into a comparable pick model in the only honest way: its fit gives each player a predicted
+pick position $\hat\pi_j$ with residual SD $\sigma$, so
+$\Pr(j \text{ at } t) \propto \varphi\big((t-\hat\pi_j)/\sigma\big)$ renormalised over
+$\mathcal{A}_t$. Both models are then scored on the same quantity — held-out probability mass
+on the player actually taken.
+
+| model | LOPO mean log-lik | SE | top-1 | top-5 |
+|---|---|---|---|---|
+| uniform over $\mathcal{A}_t$ | −5.070 | 0.018 | — | — |
+| OLS (ADP + position), $R^2 = 0.832$, resid SD 10.6 | −3.419 | 0.144 | 0.090 | 0.321 |
+| M0 (value only) | −3.628 | 0.157 | 0.115 | 0.436 |
+| M1 (§R1 as written) | −3.374 | 0.147 | 0.141 | 0.423 |
+| M2 (unpenalised, separated) | −3.383 | 0.234 | 0.141 | 0.474 |
+| **M2R (selected)** | **−3.242** | 0.143 | 0.141 | 0.474 |
+
+Paired per-pick differences against OLS: M2R **+0.177 ± 0.172** ($t = 1.03$), M1 **+0.045 ±
+0.160** ($t = 0.28$), M0 **−0.209 ± 0.172**.
+
+**So: the behavioural model beats the positional correction on the point estimate and not at
+conventional significance.** That is the honest headline and §R5 required it be stated
+whichever way it came out. Most of what a conditional logit knows about this room is already
+in "shift TEs 12 picks earlier, QBs 3, RBs 2, add Gaussian noise of 11 picks". What the logit
+adds is not accuracy but *structure*: it is a proper distribution over the available set, so
+it can be simulated forward without an ad-hoc renormalisation; it is roster-state dependent
+(the need block is jointly significant, LR $= 47.9$ on 4 df against M0, $p = 1\times10^{-9}$);
+and it refuses to draft a second quarterback. The first is why it is worth building at parity
+on log-likelihood. The third is why M1 is not the version to ship.
+
+**Pick-level calibration.** Bucketing all held-out (pick, candidate) pairs by predicted
+probability, realised frequencies track predictions within one SE everywhere below $p = 0.2$
+— which is where essentially all the mass lives. Above that the model is **overconfident**:
+the $[0.2, 0.4)$ bucket predicts 0.278 and realises 0.138 ($n = 29$), and $[0.4, 0.7)$
+predicts 0.497 and realises 0.200 ($n = 15$). Those counts are far too small to estimate a
+miscalibration slope, but the direction is consistent and has a mechanical cause — a softmax
+over 100+ alternatives with one global temperature concentrates too much mass on the modal
+candidate when the board has an obvious top name. **Practical consequence: $\Pr(\text{gone})$
+for the single most obvious next pick is likely overstated, so survival probabilities at the
+very top of the board should be read as a lower bound.**
+
+**Survival calibration — the test that actually matters.** This is a genuine temporal
+holdout. At each anchor $t_0 \in \{31, 41, 51, 61, 71\}$ the model is **refitted using only
+picks before $t_0$**, then run forward by Monte Carlo (2,000 runs) for 15 picks; every
+still-available player gets a predicted $S_j(t_0+15)$, scored against whether he actually
+survived.
+
+| predicted bucket | $n$ | mean predicted | realised | ±SE |
+|---|---|---|---|---|
+| [0.0, 0.1) | 6 | 0.012 | 0.167 | 0.152 |
+| [0.1, 0.3) | 9 | 0.182 | 0.111 | 0.105 |
+| [0.3, 0.5) | 20 | 0.398 | 0.450 | 0.111 |
+| [0.5, 0.7) | 40 | 0.619 | 0.500 | 0.079 |
+| [0.7, 0.9) | 118 | 0.815 | 0.797 | 0.037 |
+| [0.9, 0.98) | 200 | 0.951 | 0.970 | 0.012 |
+| [0.98, 1.0) | 377 | 0.994 | 0.997 | 0.003 |
+
+Brier score **0.0558** against a base-rate Brier of 0.0879 — **skill $+0.365$**. Every bucket
+sits within one standard error of its diagonal. Things called 70% happen about 70% of the
+time, which is the criterion the spec set. Top-1 and top-5 hit rates are reported above as
+secondary diagnostics and are **explicitly not the adoption criterion**.
+
+### 44.8 Running it forward
+
+Given $\hat\theta$ and $\hat V = [-\nabla^2\ell_{\text{pen}}(\hat\theta)]^{-1}$, one
+simulation run is:
+
+1. Draw $\theta^{(s)} \sim \mathcal{N}(\hat\theta, \hat V)$ — this propagates parameter
+   uncertainty into the survival curves rather than treating $\hat\theta$ as known, which is
+   the spec's point that "that uncertainty is half the value".
+2. For each pick from now to the horizon: with probability $\lambda$ the manager takes an
+   off-board player and the board is unchanged; otherwise sample from (44.1) over the current
+   $\mathcal{A}_t$ using $\theta^{(s)}$, remove the player, and update that manager's roster
+   counts so the need terms move.
+3. Record availability at each of the owner's picks.
+
+$\hat S_j(k)$ is the Monte Carlo mean over 8,000 runs. This is deliberately **not** a
+normal-CDF approximation to the pick position: the approximation ignores that removals are
+competing risks over a shared pool, and it cannot represent a run.
+
+**The off-board hazard $\lambda$ is an honest extrapolation and is labelled as one.** After
+suffix-normalised matching, **0 of 87** realised picks fell outside our 204-player universe.
+But the remaining 63 picks must absorb ten defences, which the board does not contain, so
+$\lambda = 0$ would drain the board too fast. We use the Jeffreys posterior mean
+$\lambda = (0 + \tfrac12)/(87+1) = 0.0057$ and report a sensitivity at $\lambda = 0.15$ — a
+room that has started on defences. Mean absolute change in $S_j$ at the next pick across all
+undrafted players: **0.021**; maximum 0.084. The conclusions do not turn on it.
+
+### 44.9 VONA, and the distinction that decides the pick
+
+The spec defines Value Over Next Available as "the best player likely there now vs the
+expected best player still there at your next pick". Written out, for the owner picking at
+$t_0$ with next pick $t_1$:
+
+$$\text{VONA}_p^{\text{raw}} = \max_{j \in \mathcal{A}_{t_0},\,\text{pos}(j)=p} v_j \;-\; \mathbb{E}\Big[\max_{j \in \mathcal{A}_{t_1},\,\text{pos}(j)=p} v_j\Big]. \tag{44.4}$$
+
+Note the expectation is of a maximum, not a maximum of expectations, and it is taken over the
+simulated $\mathcal{A}_{t_1}$ — there is no closed form, which is the whole reason for the
+Monte Carlo.
+
+**But (44.4) is the wrong quantity for this decision, and seeing why is the section's main
+practical result.** The owner holds three RB and five WR against six startable RB/WR slots.
+His roster is *positionally saturated*: the best available RB would not crack his starting
+lineup at all. Board value measures a player in isolation; what a pick is worth is what it
+adds to the **starting lineup**. So define, for roster $\mathcal{R}$ and the lineup-value
+operator $L$ (best 1QB/2RB/2WR/1TE/2FLEX from the roster),
+
+$$\text{VONA}_p^{\text{lineup}} = \max_{j \in \mathcal{A}_{t_0},\, \text{pos}(j)=p}\big[L(\mathcal{R}\cup j) - L(\mathcal{R})\big] \;-\; \mathbb{E}\Big[\max_{j \in \mathcal{A}_{t_1},\,\text{pos}(j)=p}\big[L(\mathcal{R}\cup j) - L(\mathcal{R})\big]\Big]. \tag{44.5}$$
+
+The two disagree sharply, and only (44.5) is decision-relevant:
+
+| position | best now | raw VONA (44.4) | marginal now | E[marginal next] | **lineup VONA (44.5)** |
+|---|---|---|---|---|---|
+| QB | Dak Prescott | +0.537 | +1.250 | +0.709 | **+0.540** |
+| WR | Wan'Dale Robinson | +1.073 | +0.361 | +0.049 | **+0.312** |
+| TE | Travis Kelce | +0.247 | +2.372 | +2.123 | **+0.249** |
+| RB | Rico Dowdle | +1.006 | **0.000** | 0.000 | **0.000** |
+
+Raw VONA says WR and RB are decaying fastest, and both statements are true — the WR shelf
+collapses ($S = 0.07$ for the top name over 17 picks) and four RBs are expected to go. Both
+are also **irrelevant**, because neither player would start.
+
+### 44.10 The recommendation, and its breakeven
+
+Ranking first actions by expected final starting-lineup value, with the owner following a
+marginal-lineup-value greedy rule at his remaining picks, opponents following the fitted
+logit, and $\theta$ redrawn each run (1,500 runs; DST excluded as a constant that cancels):
+
+| first action | E[lineup] under M2R | SE | E[lineup] under M1 | SE |
+|---|---|---|---|---|
+| **QB** | **61.170** | 0.007 | **61.266** | 0.006 |
+| TE | 60.925 | 0.012 | 60.448 | 0.007 |
+| WR | 60.890 | 0.014 | 60.424 | 0.007 |
+| RB | 60.536 | 0.014 | 60.071 | 0.007 |
+
+**Both specifications rank QB first.** That spec-robustness — across a pair of models that
+disagree by a factor of two on the QB survival curve — is the reason to take the ordering
+seriously; the margin, $+0.245$ lineup points under the selected model, is not large.
+
+The logic is worth stating in words because it inverts the naive reading. The owner *needs* a
+TE and the room drafts TEs 12 picks early, which sounds like urgency. But the TE tier is flat
+by construction — 2.37, 1.86, 1.78, 1.65, 1.62 — so losing the top name costs **0.25**, and
+$S = 0.56$ for the top name with better than 0.99 that at least one of the flat tier survives.
+Waiting on TE is cheap *because* the tier is flat, which is exactly the situation VONA exists
+to detect. The QB shelf is the opposite: only seven QBs are gone and nobody is racing, but the
+upgrade over the incumbent starter is a **step function** — one quarterback is worth a real
+upgrade and the next is worth a third as much — and $S = 0.44$ for that one name. A flat tier
+is safe to wait on however fast it drains; a step is not, however slowly.
+
+**What would flip it.** The call rests on a board gap of 1.25 PPG between the best available
+QB and the incumbent, against a per-player board posterior SD of 1.2–1.8. Shifting every
+available QB's evaluated value down by $c$ (leaving opponent behaviour, and hence the survival
+curves, untouched), lineup VONA(QB) falls below TE's 0.249 for $c$ between 0.75 and 1.00. So
+the true QB upgrade would have to be **overstated by about 0.8 points** — inside one board SD
+— for the recommendation to reverse. It is directional, not decisive, and it is recorded that
+way.
+
+### 44.11 What §R establishes, and what it does not
+
+**Establishes.** (i) A conditional-logit pick model can be fitted to a single live draft and
+is **calibrated out of sample on the quantity it exists to produce** — survival probabilities,
+Brier skill $+0.365$ on a temporal holdout, every bucket within one SE of the diagonal.
+(ii) This room is measurably biased relative to our board in a specific, estimable way: it
+takes the maximum-value available player only **10.3%** of the time, and pays +1.5 PPG for an
+RB, +1.8 for a TE, and −3.1 for a QB relative to a WR of equal value. §38(3) required that any
+edge here come from opponents being *predictably biased* rather than from sequencing in the
+abstract, and the bias is now measured. (iii) The decision-relevant VONA is the
+**starting-lineup** version (44.5), not the raw-value version (44.4), and for a saturated
+roster they give opposite advice.
+
+**Does not establish.** (i) That the behavioural model beats an ADP+positional-offset OLS:
+$+0.177 \pm 0.172$ nats is a point estimate, not a result. (ii) Anything at all about
+per-manager parameters — the §38(2) persistence pre-test remains unrun and the layer remains
+deferred. (iii) That the recommendation is robust to board error: the breakeven is inside one
+posterior SD. (iv) Any general claim about drafts. $n = 78$ opponent choices from one
+realisation of one league.
+
+The natural next step is the one §38 already specified and this section could not perform:
+log a second draft, estimate $\tau_m$ on each, and correlate. If manager tendency persists
+like player *location* ($r \approx .69$, §37) the per-manager layer is worth building; if it
+persists like *dispersion* ($r \approx .19$) it is noise, and league-mean plus tier cliffs
+plus hand-set priors is the honest product — which is precisely what was built here.
+
+---
+
+# Part IX — Round 9: the stack rebuilt as one architecture
+
+*Pre-registered in `EDA_PLAN9.md` (2026-08-24), executed by three researchers working in parallel
+on separable layers. The reader-facing summary of the resulting model is `MODEL.md`.*
+
+---
+
+## 46. §W1 — Can value be projected from inputs rather than summarised from output?
+
+**The question eight rounds never asked.** Every layer to this point has *summarised past output* —
+μ̂ is a recency-weighted mean of season means, and §S tested seven ways of computing that average.
+None of it projects from **inputs**: usage, volume, efficiency, environment. §D tried a usage ridge
+inside a different framing and failed; that is not the same as building a projection.
+
+**Design.** Predict next-season PPG from preseason-knowable inputs only, per position. Feature
+blocks fixed in advance: volume (target/air-yards/carry share, goal-line and third-down usage, snap
+share), efficiency (**only those passing the §4 reliability gate, re-run on the wider panel**),
+environment (team pass volume, pace, line proxies, QB continuity), structure (age, experience, draft
+capital). Three estimators — regularised linear, gradient-boosted trees, hierarchical with
+position-level pooling — LOSO on the §7 folds, DM clustered by year.
+
+**The binding comparison was against μ̂, not against a naive baseline.** Beating "predict the mean of
+everyone" is worthless; the incumbent is a specific, validated estimator.
+
+**Result: REJECT.** The decisive nested test — the entire apparatus added on top of a *calibrated,
+age-aware* μ̂:
+
+| pos | n | RMSE base | RMSE full | gain | p | MDE₈₀ | obs/MDE | folds+ |
+|---|---|---|---|---|---|---|---|---|
+| WR | 568 | 3.5478 | 3.5097 | +0.249 | .404 | 0.895 | 0.28 | 5/10 |
+| RB | 489 | 4.0341 | 4.0691 | **−0.295** | .225 | 0.711 | −0.41 | 3/10 |
+
+WR is an uninformative null by its own MDE; **RB's point estimate is negative**. A second feature
+tier (snaps, routes, situational usage, NGS, PFR) adds nothing on top of the first. **Ninth
+independent null**, and the most thoroughly powered of them.
+
+**The pre-registered expectation held.** Gradient boosting loses everywhere (train R² 0.81 against
+out-of-sample 0.24) — the sample is ~600 player-seasons per position against a ρ_max of 0.41 (§2),
+and trees overfit that. Elastic net ≈ ridge at every mixing parameter.
+
+### 46.1 What was real inside the null
+
+Two findings survived, and both are defects in the **incumbent**, not new layers.
+
+**μ̂ is systematically over-dispersed.** Its calibration slope is **0.667 (WR) / 0.605 (RB)** — the
+recency-weighted mean overstates how far players sit from the pack, and simply shrinking it toward
+the positional mean is worth more than every covariate in the study combined.
+
+**Age belongs inside μ̂, and §11 flagged this long ago.** Applying §H's era-3 curve to μ̂ is
+**+1.18 WR / +1.31 RB, 9 of 10 folds, p < .01**, surviving into eq. (7) at RB (+0.355, p = .010).
+Applied to the *projection* it is significantly harmful — double counting, because the projection
+already carries age as a feature. **At RB this is essentially the only correctable error in the data
+arm.** Note the distinction from §H5, which found the market prices age correctly: this is a
+within-model structural correction, not a claim of edge.
+
+Together, `calibrated μ̂ + age` reaches the best RB number of the round **with three parameters**.
+That specification was found by decomposition rather than pre-registered, so under the project's own
+rule it is **not adopted** — it is the round-10 pre-registration candidate.
+
+### 46.2 Two rejections worth recording
+
+**Availability as a model input (L2.2): REJECT.** Out-of-sample R² for predicting next-season
+availability is **0.039 (WR, p = .042)** and **0.018 (RB, p = .205)**. More sharply: the naive
+`μ̂ × prior availability` multiplier — the exact construction the owner rejected on instinct — is
+**significantly worse than doing nothing (−2.36, p = .0085)**. A points-per-scheduled-week target
+fitted *directly* works and needs no multiplier.
+
+**§P's ≥12-games interaction: WITHDRAWN.** It reproduces exactly on μ̂ (RB D2 +0.235, p = .037) but
+fails BH over the eight-test family and **collapses to +0.043/+0.009 once a projection replaces μ̂.**
+It was a symptom of μ̂ ignoring age and games, not a property of the posterior. §33's write-up stands
+as the record of how it was found; this is how it was explained away.
+
+### 46.3 A leak in shared data
+
+**FFC's historical ADP `team` column is an end-of-season label.** Across the 42 panel rows with an
+in-season team change it matches the *final* team 88% of the time and the week-1 team 7%. Any
+feature treating it as preseason information leaks the season into the prediction (worth 0.02–0.05
+RMSE here). All environment features were rebuilt on prior-season team.
+
+---
+
+## 47. §W2 — The valuation stack, and a units defect that was doing real damage
+
+### 47.1 Replacement was being measured in the wrong units
+
+Player values are **points per game played** — the isotonic curve is fitted on realised PPG.
+Replacement was computed as **season total ÷ 17**, i.e. points per *scheduled* week. These are
+different quantities and were being subtracted from one another. Because availability differs by
+position, the error does **not** cancel in the cross-position contrast, which is the only thing VORP
+exists to produce.
+
+The naive repair — rank by season total, read PPG off it — fixes the units and **breaks the
+identification**. It is an order statistic of *totals* with a rate read from it, and the two are
+linked by exactly the nuisance being removed: among equal totals the shorter season has the higher
+rate. It selects toward short high-rate seasons. 2024's WR64 by total was Stefon Diggs — 121.9 points
+in **8 games**, 15.24 PPG — and that single observation blows the WR−RB contrast out to 2.06.
+
+**Adopted: PPG rank among players with ≥8 games.** The valued quantity is PPG, so replacement must be
+an order statistic *of PPG*; a games threshold then becomes unavoidable and is handled by declaring
+a bracket rather than a number.
+
+| | QB | RB | TE | WR |
+|---|---|---|---|---|
+| incumbent (total ÷ 17) | 12.10 | 6.21 | 7.87 | 6.38 |
+| naive fix (rejected) | 15.27 | 6.95 | 9.60 | **9.01** |
+| **adopted (PPG rank, g ≥ 8)** | **15.17** | **7.47** | **9.79** | **7.92** |
+
+The *level* is threshold-sensitive; the *board* is not — across the declared bracket g ∈ [4, 12],
+Spearman ≥ .995 and at most two changes in the top 24. The rejected estimand moves the board more
+(mean |Δrank| 14.2) than any threshold choice inside the adopted one. **Identification dominates
+tuning**, which is the correct ordering.
+
+Effect: QB VORP −3.06, TE −1.92, WR −1.54, RB −1.27. Best QB falls to 33rd, best TE to 72nd.
+
+### 47.2 δ_RB, and what a revealed preference was actually detecting
+
+The owner's two choices — McCaffrey over Amon-Ra, Saquon over Rice — are **revealed-preference
+inequalities**, each giving a lower bound (≥1.292 and ≥1.401). The identified set is [1.401, ∞) and
+1.40 is the *smallest* value consistent with both: conservative, not fitted.
+
+Implemented as a **structural view**, which is the BL machinery's own answer rather than a bump
+beside it: a structural view is the Ω→0 limit of |group| absolute views sharing a common offset,
+which under diagonal Σ is exactly a flat additive shift on the group and exactly zero elsewhere. The
+builder asserts this numerically against the Ω→0 posterior on every run.
+
+**One validity separation matters.** δ_RB is a *preference premium, not a points forecast*, so it is
+kept out of the column scored in January: `value_post_views` remains in PPG and stays falsifiable;
+`value_ranked` adds δ_RB and drives ranking only.
+
+**And the honest complication.** Once §47.1 was fixed, both identifying comparisons flipped sign on
+their own (Amon-Ra − CMC = −0.39; Rice − Barkley = −0.13) — the corrected board already prefers the
+back, because the units repair shifted replacement RB +0.14 against WR −1.54, a net **+1.68 in RB's
+favour that brackets the revealed 1.29–1.40**. So the revealed preference was, at least in part,
+detecting a real defect rather than expressing a positional belief. It is retained at the owner's
+explicit direction as a statement about *his* league's meta — 11 RB against 5 WR in the first 16
+picks of his stated order, versus 8/8 at public ADP — and logged as such, dated and scoreable.
+
+### 47.3 ESPN's historical ADP is hindsight-contaminated
+
+§35 recorded a source-translation map as the correct construction for multi-source ADP. It was built
+and then **rejected**. Regressing realised season total on log-ESPN and log-FFC jointly:
+
+| season | n | ρ(ESPN, outcome) | ρ(FFC, outcome) | b_FFC given ESPN | p |
+|---|---|---|---|---|---|
+| 2023 | 134 | .626 | .402 | +1.4 | **.881** |
+| 2024 | 161 | .578 | .426 | +16.7 | **.129** |
+
+**A genuine preseason price cannot drive another genuine preseason price to zero.** ESPN's stored
+2023/24 values have been updated with in-season information; they are not preseason quantities.
+§35's "~380 matched player-seasons" are really **one clean season**. A second structural objection
+stands even for clean data: a monotone rank→rank map cannot carry the positional offsets that are
+the whole difference between the pools (TE +19.9 slots, QB +9.6, WR −7.5, RB −5.1), so translation
+would import ESPN's single-QB/single-TE scarcity into an FFC-calibrated curve while claiming to have
+removed the source difference.
+
+### 47.4 Layer ablation — what each layer actually contributes
+
+| removed | Spearman | mean \|Δrank\| |
+|---|---|---|
+| **positional replacement** | **.768** | 29.9 |
+| δ_RB (structural view) | .963 | 12.7 |
+| player views (37) | .998 | 1.81 |
+| EB posterior arm | .9996 | 0.84 |
+
+**Positional replacement does almost all the work.** The empirical-Bayes arm — the component eight
+rounds were spent validating — moves the board least, because §P4's rule restricts it to WR with ADP
+rank ≤ 30: thirty of 204 players. This is not a criticism of the arm; it is a statement about where
+the leverage in a draft board actually lives, and it was not visible until the layers were made
+separable.
+
+A defect surfaced by the same exercise: raising TE replacement emptied TE out of the top-70-by-VORP
+reference set used for the floor layer, leaving `floor_ref` undefined for 19 tight ends, and the QB
+reference was being computed on n ≤ 2 — swinging 0.55 PPG on every QB, larger than the floor layer's
+entire intended influence. Repaired with a demand-based fallback that cannot move with the layer
+being ablated; the ablation is reported under both reference rules.
+
+---
+
+## 48. §W3 — The draft engine, and where the edge actually is
+
+### 48.1 Flat versus step, formalised
+
+Order the available players at position *p* by lineup-marginal value, let δ_i be the gap between
+consecutive players and N_p the number removed before your next pick. The cost of waiting is exactly
+
+    W_p = Σ_i E[ δ_i · 1(N_p ≥ i) ]                                          (48.1)
+
+**the survival-weighted sum of the tier gaps.** Decay enters only through indicators bounded in
+[0,1]; the steps enter **linearly and unbounded**. Two corollaries: a flat tier gives
+W_p ≤ ε·E[N_p], and a stepped one gives W_p ≥ δ₁·P(N_p ≥ 1).
+
+> **The wait-or-take decision is first-order in the step size and merely bounded in the drain rate.
+> Flat tiers are safe to wait on however fast they empty; steps are not, however slowly.**
+
+Demonstrated at pick 25→36: WR drains 6.40 bodies against QB's 0.52 — **twelve times faster** — at
+near-identical best-available marginal value (9.33 vs 9.59), yet W_WR = 0.119 against
+W_QB = **1.148**. The identity is computed inside each simulation so the residual isolates order
+violation; it is uniformly negative, making (48.1) an *upper* bound in a room that does not share
+your board.
+
+### 48.2 Lineup-marginal value
+
+A player who would not start is worth **zero**, whatever his board rank. The marginal has a closed
+form Δ_p = max(0, v − c_p) over the transversal matroid of the lineup constraint, where the
+correction is the value of the starter he displaces — zero before a slot is filled, discontinuous
+after. In the live case: a QB with raw value 7.57 had marginal value **1.00**.
+
+### 48.3 §M's verdict hardens, and the mechanism is roster mix
+
+Re-running §M's design with all three additions — §R's fitted logit opponents, δ_RB, and
+lineup-marginal value — on real 2015–2024 outcomes: **0 of 4 strategies beat the ADP null and all
+four now lose significantly** (−41 to −118 season points). §M found them merely undetectable; this
+is detectably worse.
+
+Chased to mechanism: best-available-by-VORP builds a **2-RB / 10-WR roster**, because the RB/WR flex
+forces both replacement levels to a common cutoff (§M1) and VORP ordering collapses into points
+ordering. Constrain to 4 RB by round 7 and the gap vanishes: **−4.2 ± 15.9, positive in 5 of 10
+seasons.**
+
+> **The board's ordering is a wash with ADP. Its roster mix was the whole problem.**
+
+**And the sharpest result of the round:** the plain ADP strategy scores **+169 season points against
+the biased room** versus against ADP-drafting opponents. The edge is in the room's predictable bias,
+and no strategy tested captured more of it than simply not sharing that bias.
+
+### 48.4 Why availability was removed from the model
+
+The engine, running on the owner's *own* stated draft order, put Drake London at 84% and Chris Olave
+at 98% to reach pick 25, against his stated 0% and ~20%; and produced 1% for Saquon Barkley at pick
+16 where the owner's belief is explicitly bimodal — "he falls to me or goes right before."
+
+A normal-CDF survival model **cannot represent a bimodal belief**, and no amount of calibration
+repairs that. The owner observes his league; the model observes ten boards of public ADP. Simulated
+availability was therefore removed from the pipeline entirely and replaced by a declared input
+(`data/drafts/availability_priors.csv`), consumed by `scripts/74_decide.py`, which **refuses to run
+without it** rather than substituting a guess. This is the same discipline as Ω in §26 — declared,
+never fitted — applied to the one quantity the owner knows better than any fit.
+
+The resulting split is the architecture in `MODEL.md`: **steps 1–7 assert value; steps 8–10 take
+availability as given and compute the decision.**

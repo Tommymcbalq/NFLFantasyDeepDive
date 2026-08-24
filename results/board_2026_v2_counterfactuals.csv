@@ -1,0 +1,8 @@
+variant,spearman,mean_abs_drank,max_abs_drank,out_of_top24,mean_abs_dfinal,note
+replacement = total_div17,0.9786078266462178,7.901960784313726,48,2,1.6593392805770872,THE DEFECT: per scheduled week vs per game played
+replacement = total_rank_ppg,0.9560608095214537,14.156862745098039,37,3,0.6951871349070814,"rank by total, read PPG (selection toward short seasons)"
+replacement = ppg_rank g>=4,0.9946371147281452,4.696078431372549,19,2,0.3926550805873819,declared bracket
+replacement = ppg_rank g>=6,0.9996381395283093,0.9117647058823529,7,0,0.09525851828833395,declared bracket
+replacement = ppg_rank g>=10,0.9992381140849949,1.5098039215686274,9,1,0.5089164276090503,declared bracket
+replacement = ppg_rank g>=12,0.9974924200125803,2.8137254901960786,17,1,1.1101335451244145,declared bracket
+price = consensus (FFC x translated ESPN),0.9921747672996869,3.4411764705882355,62,2,0.13444708146337192,"L3.2 counterfactual; NOT adopted, see results/adp_translation_diag.md"

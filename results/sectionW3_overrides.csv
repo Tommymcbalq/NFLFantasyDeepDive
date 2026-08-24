@@ -1,0 +1,7 @@
+name,position,pick,mu_base,p_model_unconstrained,p_target,p_achieved,d_shift,mu_shifted,source
+Jahmyr Gibbs,RB,5,1.0,0.0275,0.0,0.0025,-2.9942214488983154,-1.9942214488983154,owner stated: gone at 5
+Bijan Robinson,RB,5,2.0,0.0625,0.0,0.0025,-4.3083250522613525,-2.3083250522613525,owner stated: gone at 5
+Ja'Marr Chase,WR,5,3.0,0.19583333333333333,0.0,0.0016666666666666668,-4.3341100215911865,-1.3341100215911865,owner stated: gone at 5
+Puka Nacua,WR,5,4.0,0.37083333333333335,0.1,0.09916666666666667,-2.663487195968628,1.336512804031372,"owner stated: 'low' -- ENCODED as 0.10 by the analyst, NOT an owner number; needs confirmation"
+Drake London,WR,25,24.0,0.8408333333333333,0.0,0.0016666666666666668,-8.005446195602417,15.994553804397583,owner stated: 0% in the third
+Chris Olave,WR,25,29.0,0.9791666666666666,0.2,0.19916666666666666,-11.225706338882446,17.774293661117554,owner stated: ~20%

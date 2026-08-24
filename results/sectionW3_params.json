@@ -1,0 +1,76 @@
+{
+ "noise": {
+  "sim_mae_stated": 1.381607142857142,
+  "sim_bias_stated": 1.1059821428571426,
+  "sim_sd_stated": 1.7274953036274625,
+  "target_sd_stated": 1.7546397922417,
+  "sim_sd_tail": 9.970122001122773,
+  "ffc_sd_tail": 9.859821428571427,
+  "corr_sd_tail": 0.9977474253546933
+ },
+ "demo_regression": {
+  "step_only": {
+   "n": 52,
+   "r2": 0.311,
+   "coef": {
+    "const": 0.102,
+    "delta1": 0.4861
+   },
+   "se": {
+    "const": 0.0856,
+    "delta1": 0.1023
+   }
+  },
+  "decay_only": {
+   "n": 52,
+   "r2": 0.134,
+   "coef": {
+    "const": 0.083,
+    "E_drain": 0.1286
+   },
+   "se": {
+    "const": 0.127,
+    "E_drain": 0.0463
+   }
+  },
+  "both": {
+   "n": 52,
+   "r2": 0.496,
+   "coef": {
+    "const": -0.2675,
+    "delta1": 0.5282,
+    "E_drain": 0.1524
+   },
+   "se": {
+    "const": 0.1143,
+    "delta1": 0.089,
+    "E_drain": 0.0359
+   }
+  }
+ },
+ "my_picks": [
+  5,
+  16,
+  25,
+  36,
+  45,
+  56,
+  65,
+  76,
+  85,
+  96,
+  105,
+  116,
+  125,
+  136
+ ],
+ "slot": 5,
+ "teams": 10,
+ "rounds": 14,
+ "delta_rb": 1.345,
+ "board": "/Users/thomasmcnamee/NFL/results/board_2026.csv",
+ "nsim": 4000,
+ "nsim_strat": 1500,
+ "sig_stated": 1.7546397922417,
+ "stated_depth": 28
+}

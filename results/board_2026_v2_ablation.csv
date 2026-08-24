@@ -1,0 +1,23 @@
+variant,spearman,mean_abs_drank,max_abs_drank,out_of_top24,out_of_top50,mean_abs_dfinal,mean_drank_by_pos,biggest_mover,note,floor_ref_rule
+CUM  L3 market only (pi_market),0.6874656338565703,35.029411764705884,156,16,23,2.820741438467134,"{'QB': -97.6, 'RB': 39.9, 'TE': -39.1, 'WR': 6.5}",Daniel Jones (-156),,top70
+CUM  + L3 EB posterior,0.6868140023040334,35.07843137254902,156,16,23,2.84515695373339,"{'QB': -98.0, 'RB': 39.5, 'TE': -39.3, 'WR': 6.9}",Daniel Jones (-156),,top70
+CUM  + L4 player views,0.6962746747142928,34.59803921568628,152,16,23,2.800085785391677,"{'QB': -96.5, 'RB': 38.8, 'TE': -38.9, 'WR': 6.9}",Daniel Jones (-152),,top70
+CUM  + L4 structural delta_RB,0.7552437964252143,29.96078431372549,148,13,23,2.3334191187250104,"{'QB': -93.8, 'RB': 24.0, 'TE': -33.4, 'WR': 16.2}",Daniel Jones (-148),,top70
+CUM  + L5.1 replacement,0.9904474489543504,5.921568627450981,29,1,1,0.24493995098039215,"{'QB': -2.0, 'RB': -0.5, 'TE': 4.7, 'WR': -0.4}",Jayden Daniels (-29),,top70
+CUM  + L5.2 floor  = FULL,1.0,0.0,0,0,0,0.0,"{'QB': 0.0, 'RB': 0.0, 'TE': 0.0, 'WR': 0.0}",Jahmyr Gibbs (+0),,top70
+LOO  -eb,0.9972181976238771,2.7549019607843137,20,1,2,0.10650721066786929,"{'QB': 9.3, 'RB': -0.5, 'TE': -1.6, 'WR': -1.7}",Baker Mayfield (+20),value_prior = pi_market for every player,top70
+LOO  -views_player,0.9969736591019923,3.019607843137255,25,2,2,0.15135950534207065,"{'QB': 6.6, 'RB': -0.6, 'TE': -1.4, 'WR': -0.9}",Quentin Johnston (+25),37 player views off,top70
+LOO  -views_structural,0.968006445639652,11.794117647058824,34,3,4,0.5206176470588235,"{'QB': -9.6, 'RB': 17.1, 'TE': -6.4, 'WR': -8.9}",J.K. Dobbins (+34),delta_RB = 0,top70
+LOO  -replacement,0.7792933826179756,28.598039215686274,136,13,19,2.4798860304897166,"{'QB': -91.9, 'RB': 23.4, 'TE': -29.6, 'WR': 15.1}",Daniel Jones (-136),"one common replacement level, no positional scarcity",top70
+LOO  -floor,0.9904474489543504,5.921568627450981,29,1,1,0.24493995098039215,"{'QB': -2.0, 'RB': -0.5, 'TE': 4.7, 'WR': -0.4}",Jayden Daniels (-29),lambda = 0,top70
+CUM  L3 market only (pi_market),0.6883533228261868,34.970588235294116,156,16,23,2.805844379643605,"{'QB': -97.3, 'RB': 40.0, 'TE': -38.7, 'WR': 6.2}",Daniel Jones (-156),,positional
+CUM  + L3 EB posterior,0.6877398562452736,35.01960784313726,156,16,23,2.8302598949098603,"{'QB': -97.8, 'RB': 39.6, 'TE': -38.8, 'WR': 6.7}",Daniel Jones (-156),,positional
+CUM  + L4 player views,0.6972302125223513,34.529411764705884,152,16,23,2.7851887265681476,"{'QB': -96.2, 'RB': 38.9, 'TE': -38.5, 'WR': 6.6}",Daniel Jones (-152),,positional
+CUM  + L4 structural delta_RB,0.7567619141853545,29.823529411764707,148,13,23,2.318522059901481,"{'QB': -93.5, 'RB': 24.1, 'TE': -32.9, 'WR': 15.9}",Daniel Jones (-148),,positional
+CUM  + L5.1 replacement,0.990078520895322,6.098039215686274,29,1,2,0.25215318627450983,"{'QB': -1.7, 'RB': -0.4, 'TE': 5.1, 'WR': -0.6}",Jayden Daniels (-29),,positional
+CUM  + L5.2 floor  = FULL,1.0,0.0,0,0,0,0.0,"{'QB': 0.0, 'RB': 0.0, 'TE': 0.0, 'WR': 0.0}",Jahmyr Gibbs (+0),,positional
+LOO  -eb,0.9996310719409716,0.8431372549019608,9,1,3,0.046635887138457545,"{'QB': 0.1, 'RB': 0.2, 'TE': 0.0, 'WR': -0.2}",Davante Adams (+9),value_prior = pi_market for every player,positional
+LOO  -views_player,0.9982698546197285,1.8137254901960784,29,2,1,0.1264809247641024,"{'QB': -0.1, 'RB': 0.2, 'TE': 0.4, 'WR': -0.2}",Quentin Johnston (+29),37 player views off,positional
+LOO  -views_structural,0.9624852464114325,12.705882352941176,36,3,5,0.4666666666666666,"{'QB': -10.9, 'RB': 19.0, 'TE': -14.8, 'WR': -7.7}",Justice Hill (+36),delta_RB = 0,positional
+LOO  -replacement,0.7683032843078358,29.88235294117647,137,13,19,2.4381556383328538,"{'QB': -91.9, 'RB': 24.2, 'TE': -35.0, 'WR': 15.9}",Daniel Jones (-137),"one common replacement level, no positional scarcity",positional
+LOO  -floor,0.990078520895322,6.098039215686274,29,1,2,0.25215318627450983,"{'QB': -1.7, 'RB': -0.4, 'TE': 5.1, 'WR': -0.6}",Jayden Daniels (-29),lambda = 0,positional
