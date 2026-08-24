@@ -1,5 +1,10 @@
 # WR Preseason Valuation Model
 
+> **Scope flag: `CASHMODEL/` is NOT part of this project.** It is a separate, independently
+> tracked repo (game-level win-probability model) that happens to live in this directory. It
+> shares no data, no code and no conclusions with the fantasy valuation model. Ignore it for
+> anything in this file, `REPORT.md`, `PROCESS.md` or the `EDA_PLAN*.md` series.
+
 **Start here:** `REPORT.md` — the complete self-contained report (notation, intuition,
 derivations, models, tests, all numbers, figures, final 2026 board). `PROCESS.md` — narrative
 log of each step. `EDA_PLAN.md` — the pre-registered protocol. Never tune toward expected

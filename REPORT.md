@@ -1749,6 +1749,12 @@ withdrawn.
   2 RB, 2 WR, 1 TE, 2 FLEX — not from ADP. Replacement levels, VORP curves and the elite-TE and
   elite-QB verdicts are unaffected.
 
+> **Corrected 2026-08-18 (see §39.2):** the claim that the API has no 2025 data was true at
+> the 2026-07-13 pull and is **false now** — `year=2025` returns 249 players from 8,470 drafts
+> (window 08-25 → 09-01). The 2025 board has been pulled and the panel refit on 11 seasons.
+> Also corrected there: every historical window is a *late-August/September* window, while the
+> 2026 board used through §38 was a *July* window.
+
 **Second source obtained (2026-08-13).** ESPN's fantasy API serves live ADP at
 `lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{year}/segments/0/leaguedefaults/3`
 with a `x-fantasy-filter` sort on PPR draft ranks. `leaguedefaults/3` is ESPN's **10-team PPR**
@@ -1922,3 +1928,871 @@ domain where it is essentially never done, the honest documentation of nulls and
 predictions of our own (§28.1, §32 O3), and — if strand 3 survives its pre-test — transferable
 behavioural parameters via meta×profile interactions in a tiny-N hierarchical discrete-choice model
 validated on calibration rather than accuracy.
+
+---
+
+# Part VII — Round 7: The Prior's Era Assumption
+
+## 39. §S — The eleventh season, and the asymmetry nobody had justified
+
+### 39.1 Notation added
+
+| symbol | meaning |
+|---|---|
+| $t$ | a training season (calendar year of the ADP board) |
+| $Y$ | the held-out board year in LOSO |
+| $h$ | half-life, in seasons, of the weight applied to training seasons |
+| $w_{t}^{(Y,h)}$ | weight given to season $t$ when fitting the prior for fold $Y$: $2^{-|t-Y|/h}$ |
+| $m_h(\cdot)$ | the market-prior curve fitted under half-life $h$; $m_\infty$ is the era-flat curve of §6.1 |
+| $\tau^2_h(e)$ | the tier-$e$ prior variance under the same weights |
+
+### 39.2 What was found, and why it was a defect
+
+Two data facts, both correctable, were established on 2026-08-18:
+
+**(a) The 2025 board exists.** §35 recorded "the API has no 2025 data", true at the 2026-07-13
+pull and false now: `year=2025` returns 249 players from 8,470 drafts, window 2025-08-25 →
+2025-09-01, with sane values (Chase 1.5, Bijan 2.1, Jefferson 4.4). Pulled to
+`data/adp/historical/adp_ppr_2025.csv`. The panel goes **300 → 330 rows, 291 → 321 in fit,
+10 → 11 LOSO folds**, all 30/30 names matched with no new identity resolutions.
+
+**(b) Every historical board is a *September* board; the 2026 board being modelled was a *July*
+board.** The FFC endpoint does not return a season-long average — it returns a rolling window of
+recent drafts, frozen for completed seasons at the final pre-season week. Verified for all eleven:
+the windows run 2015-09-06→09-09 through 2025-08-25→09-01, none opening before 25 August. The
+modelling universe `wr_top30_adp_2026.csv`, by contrast, was pulled over 2026-07-06→07-13. The
+curve was therefore estimated on prices set *after* camp and preseason and applied to prices set
+*before* them — a one-directional information mismatch of six to eight weeks. This is not a
+subtle bias: the July→18 August movement table below contains ADP swings of 15–31 slots.
+Re-anchored to `data/adp/adp_ppr_2026_all_20260818.csv` (window 2026-08-11→08-18, 6,809 drafts),
+which sits inside the training window's calendar position.
+
+Both pulls are additive; no raw file was overwritten, and the round-1 artifacts
+(`market_prior.csv`, `loso_scorecard.csv`) are left intact for provenance. The refits write to
+`*_11yr.csv` / `loso11_*.csv`.
+
+### 39.3 The asymmetry, stated plainly
+
+The posterior of eq. (7) has two inputs, and they were being estimated under **contradictory
+assumptions about time**, which no section had ever justified:
+
+- The **likelihood** $\hat\mu_i$ is recency-weighted with a season half-life of one year
+  (script `01`, headline `mu_hat = mu["h1"]`). A player's 2025 season carries weight 1, 2024
+  weight $\tfrac12$, 2023 weight $\tfrac14$; everything 2022 and earlier carries $\le \tfrac18$
+  and sums to about 13% of the total. So the *player* is assumed to be a moving target.
+- The **prior** $m(\cdot)$ and $\tau^2(e)$ pooled 2015–2024 with **equal weight on every season**
+  (script `07`, a plain `iso.fit(x, y)` with no `sample_weight`). So the *market* is assumed to be
+  a fixed object.
+
+There is no principled reason to hold both. Either the ADP→PPG mapping is stationary in calendar
+time or it is not, and if it is not, an era-flat prior mislevels recent seasons in exactly the way
+an era-flat likelihood would mislevel a recent player. The flat prior was inherited from the
+round-1 code, never argued for. §S tests it.
+
+### 39.4 §S1 — in-sample diagnostic (script `50`)
+
+Mean isotonic residual by season, on the 11-season panel — how far the board's realised PPG sat
+above or below the pooled curve:
+
+| 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| +0.56 | −1.02 | −1.28 | +1.18 | +0.24 | +1.40 | +0.55 | +0.23 | −0.04 | −0.59 | **−1.27** |
+
+The last three seasons are all negative and monotonically worsening, and mean board PPG falls from
+15.76 (2018) to 13.88 (2025). But the formal tests do **not** license acting on that:
+
+- **S1a, season trend:** $-0.055$ PPG/yr, HC3 se $0.063$, $p=.384$; clustered on the 11 seasons,
+  se $0.083$, $p=.512$. 95% CI $[-0.177,+0.068]$ — the CI contains zero and also contains
+  effects large enough to matter, i.e. uninformative rather than null.
+- **S1b, the owner's pre/post-2022 split:** $\ge$2022 mean $-0.426$ vs $\le$2021 $+0.251$,
+  difference $-0.677$ PPG, Welch $t=-1.83$, $p=.068$.
+- **S1c, the 17-game era split ($\ge$2021):** difference $-0.437$, $t=-1.18$, $p=.239$. Reported
+  separately from S1b because the schedule change is a *mechanism* and the 2022 split is not; the
+  weaker result on the mechanism-based split is evidence *against* attributing the drift to the
+  17th game. (The outcome is per-game throughout, so the schedule length never entered directly.)
+
+**Nothing is adopted on this evidence.** In-sample residual structure is what a flexible isotonic
+fit will always show some of. The question is whether re-weighting *forecasts better*, which S2 asks.
+
+### 39.5 §S2 — the out-of-sample test (script `51`)
+
+**The weight, and why it is distance-to-$Y$ rather than distance-to-2025.** Pre-registered before
+running. For fold $Y$, training season $t$ receives
+
+$$w_t^{(Y,h)} \;=\; 2^{-|t-Y|/h}.$$
+
+The absolute value is the design decision. The hypothesis under test is that $m(\cdot)$ is *locally
+stationary in calendar time* — that boards near season $Y$ are more informative about season $Y$
+than boards far from it. That is symmetric: for $Y=2017$, the 2016 and 2018 boards are both close
+and both informative. Weighting toward 2025 inside every fold would instead be asking "do late
+seasons predict early ones", which is a different and uninteresting question, and would make the
+early folds a test of extrapolation rather than of stationarity. The two coincide where it matters:
+for the live 2026 board, $Y$ lies beyond every training season, so $|t-Y| = 2026-t$ and the weight
+*is* pure recency.
+
+$\tau^2_h(e)$ uses the same weights, as a weighted residual variance with the reliability
+correction $\sum w - \sum w^2/\sum w$ in the denominator. A recency-weighted centre paired with an
+era-flat spread would be internally inconsistent: $B_i = V_i/(V_i+\tau^2_i)$ would then blend a
+local mean against a global variance and systematically under-shrink. $\sigma^2(e)$ is deliberately
+left flat — it is a within-player game-level variance estimated on the whole WR population, not a
+market quantity, and no era hypothesis was raised about it.
+
+**Adoption rule, fixed before results were seen:** an arm replaces (ii) only if it *both* lowers
+pooled RMSE *and* achieves DM $t>0$ with $p<.05$ against (ii), clustered on the 11 folds.
+
+**11-fold LOSO scorecard** (321 eval rows, 5 with no prior data):
+
+| arm | RMSE | mean Spearman | DM t vs (i) | p | DM t vs (ii) | p |
+|---|---|---|---|---|---|---|
+| (i) $m_\infty$ flat | 3.5545 | .4558 | — | — | −2.125 | .060 |
+| (ii) $\theta^*$ flat *(current model)* | 3.4671 | .4587 | +2.125 | .060 | — | — |
+| (iii) $m_{h=4}$ | 3.5045 | .4590 | +2.684 | .023 | −0.705 | .497 |
+| (iv) $m_{h=2}$ | 3.4862 | .4682 | +2.277 | .046 | −0.322 | .754 |
+| (v) $m_{h=1}$ | 3.4905 | .4615 | +1.447 | .179 | −0.352 | .733 |
+| (vi) $\theta^*_{h=4}$ | 3.4334 | .4716 | +3.212 | .009 | **+2.244** | **.049** |
+| (vii) $\theta^*_{h=2}$ | **3.4196** | .4729 | +3.537 | .005 | +1.833 | .097 |
+| (viii) $\theta^*_{h=1}$ | 3.4213 | **.4740** | +3.093 | .011 | +1.232 | .246 |
+
+**Reading it honestly.** Every one of the six weighted arms lowers RMSE and raises Spearman
+relative to its flat counterpart — six for six, with no arm going the wrong way, and the
+improvement is smooth in $h$ rather than spiky. That coherence is the strongest thing here. On the
+literal pre-registered rule, **(vi) $\theta^*_{h=4}$ passes**: lower RMSE (3.4334 vs 3.4671) and
+DM $p=.049$.
+
+**But three $\theta$ arms were tested against (ii), and the rule did not pre-specify a
+multiplicity correction.** Applying BH across that family of three, $p=\{.049,.097,.246\}$ against
+thresholds $\{.033,.067,.100\}$: **0/3 survive at $q=.10$**; 2/3 survive at $q=.20$. The arms are
+nested and heavily correlated so BH is conservative here, but the project's standing rule is that
+a correction is not waived because it is inconvenient.
+
+**Verdict: promising, not certified.** This is the first structural change in seven rounds to
+improve out-of-sample forecasting *coherently across a whole family*, and it is the first time a
+modelling assumption — rather than a covariate — has been the thing under test, which is likely
+why. It is not carried into the headline board on a single $p=.049$. The pre-registered next step
+is a **clean confirmatory test of a single $h$**: $h=2$ is the point estimate the family centres on
+(lowest RMSE, and the midpoint of the two arms that survive BH at $q=.20$), and it should be run as
+a one-arm test on a design that has not already been used to select it — which means either the
+RB/TE/QB panels of §23/§O, where the same asymmetry exists and the hypothesis is now
+*pre-registered rather than discovered*, or the 2026 season as a genuine holdout. Recorded, dated,
+scoreable. **The 2026 board below is still the flat-prior board.**
+
+**A note on what the 11th fold did on its own**, separately from weighting: $\tau^2$(soph) moved
+7.9 → 9.9 (n 36 → 41), $\tau^2$(vet) 11.3 → 11.2 (n 251 → 275), $\tau^2$(rookie) 24.5 → 19.2
+(n 4 → 5). The §6.1 ordering failure **persists and is now better estimated**: soph (9.9) still
+sits below vet (11.2), and the gap narrowed rather than reversing, so the extra season did not
+rescue the expected rookie > soph > vet ordering. Used as estimated, as before. The OLS reference moved from PPG $= 22.57 - 2.32\log$ ADP
+to $22.24 - 2.25\log$ ADP, $R^2$ .225 → .219. Nothing qualitative changed.
+
+### 39.6 What §S does not touch, and one correction to the record
+
+Round 3's §E is repeatedly summarised elsewhere in this report as "context is null". That
+summary is **too strong and is corrected here.** §E tested a *mechanically constructed* arm — two
+coefficients, a team-change dummy and a centred vacated-target-share, refit per fold. It failed,
+and its mechanism was identified: because the market already prices moves (§B3), pushing a
+population-average mover effect into the data arm double-counts information that $m(\text{ADP})$
+already delivers at weight $B\approx.66$. That mechanism is specific and it has a corollary that
+was never drawn: **the double-counting argument only applies to information the market has
+already absorbed.** It says nothing about information that is not in the price — which is the only
+kind a discretionary view is worth holding. The correct home for such a view is §J, and it has
+**already been used**: `results/views_2026.csv` holds **28 owner views dated 2026-08-09 to
+2026-08-12**, several of them explicit owner numbers (Lamb/Pickens at 16.0, JSN 17.59, St. Brown
+19.28, Hampton 16.3 over Henry and Barkley), each with magnitude $q$, declared confidence, dated
+rationale, run through the $(P,q,\Omega)$ overlay onto a frozen board. An earlier draft of this
+subsection asserted no hand-priced view had ever been supplied; **that was false and is withdrawn
+here.** What §E's null does *not* cover remains true — mechanically constructed context is not the
+same object as a priced view — but the views layer is live, not hypothetical.
+
+### 39.7 The re-anchored 2026 market, July 13 → August 18
+
+`results/adp_movement_2026_jul_aug.csv` (265 players, three windows). The market moved hard, and
+the moves are structural rather than diffuse — new team assignments and price collapses on
+established players, i.e. exactly the events a discretionary layer exists to price:
+
+| riser | Jul 13 | Aug 8 | Aug 18 | Δ | | faller | Jul 13 | Aug 8 | Aug 18 | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Stafford LAR | 103.0 | 83.6 | 79.8 | −23.2 | | Herbert LAC | 74.5 | 108.5 | 105.5 | +31.0 |
+| J. Brooks CAR | 128.2 | 112.2 | 108.1 | −20.1 | | Kraft GB | 72.2 | 110.6 | 102.6 | +30.4 |
+| C. Williams CHI | 109.1 | 106.4 | 91.9 | −17.2 | | Mahomes KC | 74.9 | 96.2 | 99.4 | +24.5 |
+| DJ Moore BUF | 66.8 | 51.3 | 50.3 | −16.5 | | LaPorta DET | 69.7 | 87.6 | 86.7 | +17.0 |
+| Nabers NYG | 43.6 | 33.9 | 27.8 | −15.8 | | Burden CHI | 45.2 | 53.4 | 58.5 | +13.3 |
+| Hurts PHI | 94.9 | 74.6 | 79.6 | −15.3 | | Loveland CHI | 45.0 | 60.8 | 57.0 | +12.0 |
+| Maye NE | 64.8 | 49.6 | 50.1 | −14.7 | | Higgins CIN | 26.4 | 39.2 | 36.0 | +9.6 |
+| Rice KC | 27.3 | 11.4 | 14.5 | −12.8 | | McLaurin WAS | 36.6 | 42.6 | 46.2 | +9.6 |
+
+New to the top 120 since July: **Kenneth Walker KC 23.4**, **Diggs WAS 93.7**, **Deebo SF 110.8**
+— none of whom were on their listed teams in the July pull, alongside DJ Moore to BUF and Evans to
+SF. Highest residual price disagreement inside the top 60 (`stdev`, i.e. the market itself is
+split): Loveland 9.0, Allen 8.1, Burrow 7.9, Lamar 7.7, Montgomery 7.7, Bowers 7.4, Burden 7.4.
+Those are the rows where a view has the most room to move a price.
+
+**Two data-hygiene rulings recorded here.** First, `times_drafted` must **not** be used as a
+precision weight: it is erratic at the top of every board (2024 has McCaffrey at ADP 1.4 with 181
+but Lamb at 3.7 with 321; 2026 has Nacua at 2.8 with 50 against Chase's 298), so it is not a clean
+coverage count. `stdev`, `high` and `low` behave monotonically in ADP and are trustworthy. Second,
+the historical files are **immutable**: re-pulling 2015 today returns values byte-identical to the
+2026-07-13 cache across 200 matched names, max $|\Delta\text{ADP}| = 0.0$. The panel cannot drift
+under a refit.
+
+### 39.8 On monotonicity, and where cross-positional value is actually decided
+
+A clarification the report never stated explicitly. Every isotonic fit in this project is
+**within-position**: WR (script `07`/`49`), RB (`23`), TE and QB (`35`), deep board (`40`). No
+cross-position curve exists or would be meaningful. The monotonicity assumed is only that *within
+the WR board, more expensive WRs out-score cheaper WRs on average* — an ordering claim about one
+position's price ladder, not a claim that ADP maps monotonically to value across positions or
+league settings.
+
+Cross-positional value is decided nowhere in $m(\cdot)$. It is decided in §M/§O, from **roster
+demand under the owner's actual 10-team, 2-RB/2-WR/1-TE/2-FLEX/1-QB settings** — replacement level
+computed from how many of each position the league must start, then VORP against it. That is why
+§35's discovery that FFC's `teams=` parameter is a no-op did not damage the scarcity conclusions:
+they never read ADP as a supply curve. It is also why the elite-TE and elite-QB fades survive at
+ESPN's 10-team prices, where those players cost 30–50 slots more.
+
+### 39.9 The boundary this round makes explicit
+
+FFC ADP is a *casual* market and the owner's league is sharp. That is fine for estimating
+$m(\cdot)$ — a mapping from price to outcome is a property of players, and any constant level or
+scale difference between FFC's rooms and a sharp room is absorbed by a curve that is refit and
+evaluated in the same pool. It is **not** fine for anything that treats ADP as *the owner's
+league's supply curve*: pick-by-pick availability, VONA, survival curves, the §R draft simulator.
+Those require draft logs from rooms resembling the owner's, which is exactly what §R is blocked on.
+Stated here so the boundary is not re-crossed by accident.
+
+---
+
+## 40. §S5–S7 — Camp-refreshed views on a re-anchored board
+
+### 40.1 What was refreshed and why
+
+The §J views layer was **not** stale in the sense of missing — 28 owner views existed, dated
+2026-08-09 to 08-12 — but they were priced against the **2026-08-09** board and against the news as
+it stood then. Between 08-12 and 08-18 four of the players carrying views had material injury news,
+and the ADP window moved. Both inputs were refreshed together:
+
+- **π and Σ rebuilt** (`55_board_2026_wr_rb_h2.csv.py` → `board_2026_pi_sigma_h2.csv`): top-30 WR
+  and top-30 RB on the **08-11→08-18** window, market prior refit on the **11-season** panels with
+  the **recency weighting h = 2** adopted at the owner's direction in §39.5. Σ per (26.2).
+- **RB prior refit on 11 seasons** (`54_refit11_rb_prior.py`), so WR and RB sit on the same panel
+  and the same weighting. Using a 10-season flat RB prior beside an 11-season recency-weighted WR
+  prior would make the cross-position comparison incoherent.
+- **Views v2** (`views_2026_v2.csv`, 31 views, **8 updated or new dated 2026-08-18**).
+
+### 40.2 The research, and the one distinction that drove most of it
+
+The targets were chosen by the §39.7 source-gap residual — FFC rank minus ESPN rank, after
+regressing out draft depth and position (R² = .126, so 87% of the raw gap is *not* structural).
+That residual pointed at one repeated pattern: **FFC pricing a lead back where ESPN prices a
+committee.** Camp reporting resolves it in ESPN's favour in Pittsburgh and against it in Tennessee,
+and those two cases are priced differently on purpose.
+
+**Injury-driven revisions (news 8/15–8/18):**
+
+| player | old q | new q | conf | mechanism |
+|---|---|---|---|---|
+| DeVonta Smith PHI | 15.69 | 14.90 | med→**low** | hamstring; the A.J. Brown-traded WR1 role is intact, the 130-target timing is not |
+| Luther Burden CHI | 13.90 | 13.00 | med→**low** | groin, misses the whole preseason; explains his +5.1 ADP fade since 8/8 |
+| Emeka Egbuka TB | 14.86 | 14.60 | medium | minor toe, left practice; thesis unchanged, small haircut, flagged for re-check |
+| Chuba Hubbard CAR | — | **8.80** | medium | hamstring, MRI, "week-to-week", out preseason wk 2; Brooks/Etienne/Dillon split the first team |
+
+**New views:**
+
+| player | π | q | conf | reasoning |
+|---|---|---|---|---|
+| Malik Nabers NYG | 14.88 | 14.00 | medium | 9 of 10 camp practices, back in team drills in a red non-contact jersey, targeting Week 1 — but no confirmed date and the Giants are easing him into 11-on-11. Faded **not** because the knee fails but because an ACL ramp caps early volume while the price (43.6 → 27.8 since July) now assumes a clean season |
+| Jaylen Warren PIT | 10.83 | 9.80 | medium | genuine 1A/1B: alternating first-team reps, McCarthy calls both "four-down backs", OC says both can carry the load |
+| Rico Dowdle PIT | 10.81 | 9.80 | medium | deliberately **symmetric** — the view expresses the committee itself, not a preference between the two |
+| Tony Pollard TEN | 10.99 | 10.40 | **low** | explicitly **not** a committee fade: Pollard is the confirmed lead with Spears backing up. A smaller trim, different in kind — a lead role on a weak offence |
+
+**A view that could not be expressed, recorded rather than dropped silently.** Jadarian Price SEA
+is the cleanest raise the research found — Charbonnet opens on PUP, Walker left for KC, Price is a
+camp standout and the upper-leg soreness is resolved — and ESPN prices him 15 slots earlier than
+FFC. **His ADP moved to 82.1, outside the RB top 30, so the top-30-per-position board cannot carry
+him.** Same for Matthew Golden GB (114.2, "catching everything"), Carnell Tate TEN (74.0, three TDs
+in one camp period, best pass-catcher in camp), Hunter Henry NE (157.1, 2yr/$20M extension, Maye's
+critical-down target) and Jaxson Dart / Bo Nix. **This is a live structural limitation of the views
+layer, not an oversight:** §J operates on a 60-player board while the residual signal is strongest
+in the 60–160 ADP range, which is precisely where §P's deep board lives. Extending the overlay onto
+the deep board is the pre-registered next step.
+
+### 40.3 Reading the shifts correctly
+
+A revision that *cuts* a view can still show a **positive** shift against π, and two of the four
+injury revisions do. DeVonta Smith's q fell 15.69 → 14.90, but π is 14.11, so the posterior still
+moves **+0.16** — the fade is relative to the *previous view*, not to the market. Burden is the same
+(q 13.0 vs π 11.63, shift +0.27). Stating this because a table of shifts read without π invites the
+wrong conclusion, namely that the injury news was ignored.
+
+**Largest posterior shifts** (`board_2026_v2_with_views.csv`):
+
+| raised | π | θ̄ | shift | | faded | π | θ̄ | shift |
+|---|---|---|---|---|---|---|---|---|
+| Hampton LAC | 14.60 | 15.96 | +1.36 | | Achane MIA | 18.31 | 17.15 | −1.15 |
+| Odunze CHI | 11.97 | 12.96 | +1.00 | | Lamb DAL | 17.95 | 16.97 | −0.97 |
+| DJ Moore BUF | 12.32 | 13.25 | +0.93 | | Hubbard CAR | 10.55 | 9.68 | −0.88 |
+| Rice KC | 16.41 | 17.28 | +0.86 | | J. Taylor IND | 18.88 | 18.23 | −0.65 |
+| Gibbs DET | 19.45 | 20.21 | +0.76 | | Warren PIT | 10.83 | 10.32 | −0.52 |
+| K. Walker KC | 13.92 | 14.53 | +0.60 | | Dowdle PIT | 10.81 | 10.31 | −0.51 |
+
+The Pittsburgh pair land within 0.01 of each other after the overlay (10.32 / 10.31), which is the
+symmetry the views were written to express and a check that the overlay did what was intended.
+
+### 40.4 Two old views retired by price movement
+
+Courtland Sutton (q 11.4) and Quentin Johnston (q 14.2) both fell out of the WR top 30 on the
+08-18 window and are therefore off the board. Their theses are not withdrawn — Johnston's in
+particular was one of the more heavily evidenced — they simply cannot be carried by a top-30 frame.
+They move to the deep-board queue with Price, Golden, Tate and Henry.
+
+---
+
+## 41. §T — QB-availability-adjusted μ̂: a rejected arm, and what its rejection means
+
+### 41.1 Where the hypothesis came from
+
+The owner asked (2026-08-18) to see Ja'Marr Chase's production split by whether Joe Burrow played.
+The specific claim — that Chase's soft 2025 was a backup-QB artifact — **was not supported**:
+
+| season | with Burrow | without | gap |
+|---|---|---|---|
+| 2021 | 18.75 (16g) | 4.60 (1g) | −14.15 |
+| 2023 | 18.97 (10g) | 12.17 (6g) | −6.80 |
+| **2025** | **20.12 (8g)** | **19.08 (8g)** | **−1.04** |
+
+Burrow missed half of 2025 and Chase lost 1.04 PPG. He was down *with* Burrow on the field (20.12
+against 23.71 in 2024), so the dip is not a QB artifact. Rebuilding his μ̂ on Burrow-only games gives
+20.86 and π 19.11 — rank 5, not the "fourth at worst" the claim required.
+
+But the question generalised into something the project had never tested. μ̂ is a recency-weighted
+mean over **all** of a player's games, including games his team's primary QB missed. If those games
+are systematically depressed, μ̂ is a biased estimate of the player's value under normal conditions.
+That is a hypothesis about the **estimator**, not about a player, and it deserved a board-wide test.
+
+### 41.2 Why this is not §E, and the counter-argument stated before testing
+
+§E failed because it pushed a *population-average* mover effect into the data arm while m(ADP)
+already carried it — double counting. §T is a different object: a **within-player measurement
+correction** that changes what μ̂ estimates rather than adding a term to it. No market quantity is
+touched, so §E's mechanism does not apply and the null could not be assumed.
+
+The counter-argument was recorded before running, because it is the thing the test adjudicates:
+conditioning on the starter playing estimates E[PPG | QB healthy], but **the forecast target is next
+season's realised PPG, which includes whatever QB absence actually occurs.** The arm therefore trades
+noise reduction against an optimism bias, and which wins is an empirical question.
+
+### 41.3 Construction
+
+Pre-registered definitions. The **primary QB** of a team-season is the QB with the most regular-season
+attempts; a **starter game** is one in which that QB recorded ≥ 10 attempts. μ̂_qb is the identical
+h = 1 recency-weighted mean of script `01`, with each season's mean taken over starter games only;
+a season with fewer than 4 starter games falls back to the unadjusted mean, so the arm never invents
+a season from one or two games. **σ²(tier), τ²(tier), m(·), B and the inclusion rule are unchanged** —
+only the μ̂ input differs, which makes the comparison clean.
+
+Coverage: 384 team-seasons with an identified primary QB, 5,338 starter games, and **84.9% of all
+player-games are starter-QB games** — so there is not much to adjust in the first place. 36.1% of
+season rows fell back. Mean lift on non-fallback rows: **+0.073 PPG.**
+
+### 41.4 Result — rejected on both prongs
+
+11-fold LOSO on the WR panel, recency prior h = 2 throughout, 321 evaluation rows:
+
+| arm | RMSE | mean Spearman | DM vs (ii) |
+|---|---|---|---|
+| (i) m̂ market only | 3.4862 | .4682 | — |
+| **(ii) θ\* with μ̂ — incumbent** | **3.4196** | **.4729** | — |
+| (ix) θ\* with μ̂_qb — candidate | 3.4432 | .4642 | t = −1.642, p = .132 |
+
+The adoption rule required *lower* RMSE and DM t > 0 at p < .05. The candidate is **worse on both
+metrics** — RMSE up 0.024, Spearman down 0.009 — and the DM statistic is negative. **Rejected.**
+
+### 41.5 What the rejection means, which is the actual finding
+
+The pre-registered counter-argument won. **Games missed by the starting QB carry real predictive
+information about a player's future production, and conditioning them away discards signal.** Two
+mechanisms are consistent with this and neither is distinguishable here: a player on a team whose QB
+gets hurt is *more likely to face that again* (offensive lines, injury-prone starters and thin
+backup rooms persist across seasons), and a player who cannot hold value without his starter is
+revealing a genuine dependency that will recur. Either way the unadjusted μ̂ is not a contaminated
+measurement — it is the right estimand.
+
+**The consequence for the case that prompted it must be stated plainly.** Chase's rank-6 position
+on the pre-view board was **not** a measurement artifact. μ̂ was doing the correct thing, and the
+correct channel for the owner's disagreement was a view — which is exactly what was recorded
+(`v40_chase`, q = 19.30, high, owner-set, dated and scoreable). §T is the check that confirms the
+view is carrying an opinion rather than papering over a defect.
+
+**The separate defect is still open and is not this one.** m(ADP) is identical at 18.08 for every WR
+from ADP 3.1 to 10.2 — the isotonic curve is flat across the entire top of the board, so price
+separates nobody there and μ̂ does all the work unaided. That is why one soft season dropped Chase
+four places and why Drake London (μ̂ 15.66, lowest in the top nine) was carried to 9th on price
+alone. §T rules out the μ̂ side of that story; the flat top remains the live item.
+
+---
+
+## 42. §U — QB-pair continuity as a precision adjustment: the owner's specification, tested and rejected
+
+### 42.1 The specification critique that produced it
+
+§T was rejected as *generic*: a binary "did the primary QB play" pools every QB-receiver pair as
+exchangeable. The owner's objection was that **the pair is the object** — Chase/Burrow is 61 shared
+games of accumulated interaction, Nabers/Dart is one — and that no level adjustment to μ̂ can express
+that. The critique is correct as stated, and it implies a different estimator: if a player's history
+was accumulated with a QB he no longer has, that history is *weaker evidence about next season*, so
+the correction belongs in the **precision**, not the mean.
+
+    n_eff_adj = n_eff · (λ + (1−λ)·share),   share = recency-weighted fraction of prior games
+                                              played with the reference QB
+
+μ̂'s level is untouched. This is mechanically disjoint from §T, so §T's null does not bear on it.
+
+**Continuity is real and large**, which is why the hypothesis deserved a test. Top-20 WRs entering
+2026: Rice/Mahomes 1.00, St. Brown/Goff .99, Nacua/Stafford .98, Chase/Burrow .65, Olave/Shough .32,
+**Nabers/Dart .09 (one game)**, and Jefferson, A.J. Brown, London and Garrett Wilson at **.00**.
+Five of twenty have under a quarter of their weighted history with the QB they will play with.
+
+**Reference QB, pre-registered.** For player i entering season Y, the reference is the primary QB of
+i's season-Y *team* in season **Y−1** — the incumbent. Two reasons: it is the owner's stated rule for
+unresolved competitions, and it is **strictly preseason-knowable**. Using season Y's realised primary
+QB would import hindsight about in-season QB injuries, which a preseason model must not have.
+
+### 42.2 Result — rejected, and the degradation is monotone
+
+11 folds, 321 rows, share computable on 92.8%, mean share .672, and **11.8% of rows treated**
+(share < .25). λ = 1 is the incumbent.
+
+| arm | λ | RMSE | Spearman | DM vs incumbent | p |
+|---|---|---|---|---|---|
+| **incumbent** | 1 | **3.4196** | **.4729** | — | — |
+| lam50 | .50 | 3.4228 | .4729 | −0.445 | .666 |
+| lam25 | .25 | 3.4275 | .4694 | −0.651 | .530 |
+| lam00 | .00 | 3.4365 | .4684 | −0.895 | .392 |
+
+**0/3 survive BH at q = .10** — and none would survive at any level, since every DM statistic is
+negative. The degradation is **monotone in λ**: the harder a broken pairing is discounted, the worse
+the forecast. That monotonicity is the informative part. A mistuned magnitude would show noise around
+zero; an ordered decline says the *direction* is wrong.
+
+### 42.3 The mechanism, tested on the rows that matter
+
+The arm only bites on 38 treated rows, so the pooled test is weak on its own. The direct check is
+whether μ̂ or m(ADP) predicts better **on exactly those rows** — the players whose pairing broke:
+
+| on 38 treated rows (share < .25) | value |
+|---|---|
+| mean μ̂ | 14.73 |
+| mean m(ADP) | 14.19 |
+| mean realised PPG | 13.42 |
+| **MAE of μ̂** | **3.15** |
+| MAE of m(ADP) | 3.37 |
+| RMSE incumbent / λ=.5 / λ=0 | 3.7354 / 3.7820 / 3.9010 |
+
+**On the very rows the arm targets, the player's own history beats the market price.** The hypothesis
+requires the opposite — that μ̂ is stale evidence there and the market is the better guide. It is not.
+Shrinking those players toward ADP moves them away from the better predictor, which is exactly why
+the loss rises monotonically as λ falls.
+
+**The finding: receiver production is more portable across QB changes than the pair-interaction
+story predicts.** A receiver who changes quarterbacks carries most of his own value with him, and the
+market does not know something about the new pairing that his history does not already imply. Note
+this is *consistent* with §B3 — the market prices situation changes — but adds that pricing them is
+not the same as pricing them **better than the player's own record**.
+
+**Stated honestly, this is a null on n = 38 treated rows and is not decisive.** What raises it above
+"underpowered" is that three independent things point the same way: every λ arm loses, the loss is
+ordered in λ, and the subgroup MAE contradicts the mechanism directly. A larger treated sample could
+still overturn it; nothing here is claimed as proof of no effect.
+
+### 42.4 What survives from the owner's critique
+
+The specification critique of §T stands and is not withdrawn — a generic starter flag genuinely
+cannot express a pair interaction, and §T should not have been the only test. What does not survive
+is the *consequence* the critique was expected to have. Both the mean route (§T) and the precision
+route (§U) fail, in opposite corners of the estimator, which is stronger evidence than either alone.
+
+`results/qb_continuity_2026.csv` is retained regardless: the continuity table is the right input to a
+**view**, where the owner prices a specific pairing he has a read on, rather than to an arm that
+prices all of them identically. That was always the better home for pair-specific knowledge, and it
+remains available.
+
+---
+
+## 43. §S1–§S4 — Is the mean the right summary of a player's history? And the rebuild
+
+*Pre-registered in `EDA_PLAN7.md` on 2026-08-18; operational definitions fixed in
+`results/sectionS_notes.md` before any fitting; run the same day.*
+
+**A note on the section letter, so the record is not ambiguous.** `EDA_PLAN7.md` labels its
+subsections §S1–§S4. The letter §S was already in use: §39 above is "§S — the eleventh season"
+and its subsections are also §S1/§S2, and §40 is "§S5–§S7". Where this section says §S1–§S4 it
+means **round 7b's bake-off plan**, not §39's. The report numbering (§43) is unambiguous and is
+what should be cited. The plan asked for this to be written as "§39"; §39 was already occupied by
+the time it was written, so it is §43.
+
+### 43.1 The question, and why it had never been asked
+
+Every arm this project has tested — age (§C), usage (§D), situation change (§E), teammate
+structure (§F), win totals (§I3), schedule (§K), environment (§N), QB availability (§T), QB-pair
+continuity (§U) — proposed something to *add to* or *reweight* the data arm
+
+    θ*ᵢ = (1 − Bᵢ)·μ̂ᵢ + Bᵢ·m(ADPᵢ)                                                    (7, restated)
+
+Nine rounds of attempts, nine nulls. **Not one of them touched μ̂ itself.** μ̂ has been, since §1,
+a recency-weighted mean of season means
+
+    μ̂ᵢ = Σ_s w_s ȳ_{i,s} / Σ_s w_s,      w_s = 2^{−(S_max − s)/h},   h = 1              (43.1)
+
+where s runs over player i's prior seasons, ȳ_{i,s} is his mean PPR per *included* game in
+season s, and S_max is his most recent prior season. The owner's objection — that a player mean
+is among the weakest predictors available — is not obviously wrong, and the project's own numbers
+give it partial support (§2's ceiling ρ_max ≈ .41; §P's finding that the deviation from price is
+worth +1.101 of face value with a full prior season and +0.042 without). So the estimator of
+central tendency was put on trial.
+
+### 43.2 Notation added
+
+| symbol | meaning |
+|---|---|
+| $G_s$ | number of included games in prior season $s$ |
+| $u_i$ | the weight given to a single *game* $i$ in the game-level candidates |
+| $\hat\mu^{(a)}$ | the candidate summary under arm $a$; $a=1$ is the incumbent (43.1) |
+| $d$ | one-step trend: $\bar y$(latest prior season) − $\bar y$(second-latest) |
+| $x$ | prior-season usage: (share of team volume) × (team volume per game) |
+| $G_{\text{last}}$ | games played in the most recent prior season — §P's interaction variable |
+
+### 43.3 The design decision that makes the test a test
+
+Eight candidates were named in the plan; four of them (median, 20% trimmed mean, Huber, p60) are
+statistics of a player's **game-level** distribution, while the incumbent is a statistic of his
+**season means**. Computing them naively on the pooled game list changes two things at once — the
+location functional *and* the temporal weighting — and a difference in loss would then be
+uninterpretable.
+
+The alternative not chosen was to drop the recency weighting for those arms and accept the
+confound as small. It is not small: h = 1 gives the most recent season half the total weight.
+
+So each game in season s carries
+
+    u_i = w_s / G_s                                                                     (43.2)
+
+Under (43.2) the *weighted mean* of games is algebraically the incumbent:
+
+    Σ_i u_i y_i / Σ_i u_i = Σ_s (w_s/G_s)·Σ_{i∈s} y_i / Σ_s w_s = Σ_s w_s ȳ_s / Σ_s w_s = μ̂
+
+The robust arms are therefore **exactly nested** in the incumbent: they differ from it in the
+functional and in nothing else. The unweighted-pooled version was run as a declared sensitivity
+and is reported in `results/sectionS_sensitivity.csv` (it is uniformly worse, at both positions).
+
+For the same reason $B$, $V$, $\tau^2(e)$, $\sigma^2(e)$, $m(\cdot)$, the inclusion rule and the
+fold structure are held identical across all eight arms — including $n_{\text{eff}}$, which for
+arm 6 is the conservative choice; the recomputed-$n_{\text{eff}}$ version is a declared
+sensitivity and is also worse (WR −0.182, p = .216; RB −0.282, p = .224).
+
+**Harness validation before reading any candidate.** The incumbent inside this harness reproduces
+§P4's published numbers to four decimals — WR wide panel 3.4354 → 3.4011, gain +0.2458, p = .2327;
+RB 3.7506 → 3.7909, −0.3132, p = .3282. Any difference below is the μ̂ swap and nothing else.
+
+### 43.4 §S1/§S2 — the bake-off
+
+LOSO 2015–2024 on the §P wide panels, `in_fit` rows, squared error on realised PPG,
+Diebold–Mariano on the ten yearly mean loss differentials, t(9). WR n = 638, incumbent RMSE
+**3.4011**; RB n = 573, incumbent RMSE **3.7909**. MDE at 80% power, two-sided α = .05, printed
+beside every p as §S3 requires.
+
+| arm | WR ΔRMSE | WR gain | WR p | WR MDE | RB ΔRMSE | RB gain | RB p | RB MDE |
+|---|---|---|---|---|---|---|---|---|
+| 2 median | +0.097 | −0.670 | .094 | 1.125 | +0.024 | −0.205 | .504 | 0.927 |
+| 3 trimmed 20% | +0.033 | −0.229 | .236 | 0.566 | +0.002 | −0.024 | .895 | 0.560 |
+| 4 Huber | +0.013 | −0.087 | .354 | 0.279 | **−0.005** | +0.033 | .766 | 0.334 |
+| 5 p60 | +0.135 | −0.917 | **.001** | 0.608 | +0.058 | −0.452 | .025 | 0.527 |
+| **6 seasons G ≥ 12** | +0.032 | −0.218 | .139 | 0.423 | +0.068 | −0.513 | .047 | 0.703 |
+| 7 slope-adjusted | **−0.009** | +0.059 | .753 | 0.573 | **−0.040** | **+0.309** | .063 | 0.458 |
+| 8 usage-implied | −0.001 | −0.006 | .983 | 0.924 | +0.021 | −0.148 | .490 | 0.646 |
+
+**Verdict: no replacement.** Nothing clears p < .05 *and* an RMSE improvement *and* the temporal
+holdout. The only BH rejection at q = .10 (family of seven, per position) is arm 5 at WR — **in
+the wrong direction**, 0/10 folds improved. The pooled 14-test BH changes nothing. Ties go to the
+incumbent by the rule fixed before the numbers were seen, so **μ̂ stays (43.1)** and the rebuilt
+board is numerically identical to the one it replaces.
+
+**The nulls are uninformative, not evidence of equivalence.** This is §28.1 and it binds here.
+Realised MDEs run 0.28–1.12 PPG² against observed effects of 0.01–0.92. Arms 3, 4 and 8 sit
+*inside* their own MDE at both positions: the test cannot tell them apart from the mean. The one
+genuinely suggestive result is **arm 7 at RB** — +0.309, 8/10 folds, obs/MDE = 0.67, and it
+survives the temporal holdout (3.7081 → 3.6642) — and it is **not adopted**, because p = .063 and
+the bar was 0.05. It is the strongest candidate for a pre-registered re-test on a wider panel.
+
+### 43.5 Candidate 6 went the wrong way, and the reason is the substantive result
+
+Arm 6 was the one with a mechanism: §P found the deviation (θ* − m̂) is worth +1.101 of face
+value when the player played ≥ 12 games the prior season and +0.042 when he did not, so
+restricting μ̂ to full seasons should help. It is **significantly worse** — RB −0.513 (p = .047),
+and on WR's top-30 stratum −0.259 (p = .006).
+
+**The §P finding is not what failed.** Re-estimated on this harness, regressing realised PPG on
+m̂ and the deviation:
+
+| coefficient on (θ* − m̂) | WR | RB |
+|---|---|---|
+| $G_{\text{last}} \ge 12$ | **+1.098** (n = 458) | +0.514 (n = 359) |
+| $G_{\text{last}} < 12$ | **−0.026** (n = 110) | −0.064 (n = 130) |
+
+against §P's published +1.101 / +0.042. The mechanism is real. **Arm 6 is the wrong
+operationalisation of it**, and the decomposition says exactly how:
+
+| rows | n (WR) | gain | p | n (RB) | gain | p |
+|---|---|---|---|---|---|---|
+| arm 6 leaves alone | 388 | 0.000 | — | 335 | 0.000 | — |
+| arm 6 changes | 250 | −0.554 | .135 | 238 | −1.137 | .042 |
+| … last season partial (< 12 g) | 68 | −0.866 | .424 | 72 | **−2.767** | .037 |
+| … last season full (≥ 12 g) | 182 | **−0.269** | .019 | 166 | −0.361 | .145 |
+
+Two distinct failures.
+
+1. **On the rows the mechanism targets, deleting partial seasons makes μ̂ optimistic, not
+   cleaner.** Mean Δμ̂ there is **+0.45 (WR) / +1.33 (RB)** — strictly upward. Seasons are partial
+   mostly because of injury, and injury-shortened seasons are also low-scoring seasons; deleting
+   them removes the bad draws and keeps the good ones. That is selection. **It is the same error
+   §T rejected**: conditioning away the games where things went wrong, when the forecast target
+   includes whatever goes wrong next year. §T found it for QB absence; §S finds it for the
+   player's own absence. Two independent confirmations of one principle — *μ̂ must be estimated
+   over the world as it actually happened.*
+2. **It damages rows the mechanism says nothing about.** Arm 6 drops *any* short season, including
+   old ones, from players whose most recent season was complete: 182 WR rows, −0.269, p = .019.
+   Their μ̂ is simply made staler. The single largest instance on the 2026 board illustrates it —
+   under arm 6 one top-10 receiver's μ̂ falls 18.80 → 13.28 because his only ≥ 12-game season is
+   three years old, and the arm hands a three-year-old rookie line to a player with two seasons of
+   newer evidence.
+
+**What §P's finding actually implies is a change to B, not to μ̂.** "The deviation is worth +1.10
+with a full prior season and 0.00 without" is a statement about *how much weight the data arm
+deserves*, i.e. about precision. Two variants — D1 market-anchoring rows with $G_{\text{last}}<12$,
+D2 shrinking in proportion to games played, B′ = 1 − (1 − B)·min(G_last/12, 1) — go the right way
+at both positions:
+
+| | n treated | ΔRMSE | gain | DM t(9) | p | MDE |
+|---|---|---|---|---|---|---|
+| WR D1 | 110 | −0.039 | +0.260 | +1.74 | .117 | 0.472 |
+| WR D2 | 110 | −0.029 | +0.197 | +1.84 | .099 | 0.337 |
+| RB D1 | 130 | −0.047 | +0.370 | +1.89 | .092 | 0.616 |
+| RB D2 | 130 | −0.030 | +0.235 | +2.45 | **.037** | 0.302 |
+
+**This is not adopted and must not be.** It was constructed after arm 6 failed, it is two variants
+chosen post hoc, and it has no multiple-testing control. It is recorded as a **round-8
+pre-registration candidate** — the first promising one in seven rounds — and nothing on the 2026
+board reflects it. It is also not in tension with §U: §U's treated rows have *precise* histories
+about a *changed situation*; these rows have *imprecise* histories because the player barely
+played. §P's interaction variable is games, not situation.
+
+### 43.6 Why the robust estimators lose — a falsified prediction, stated as such
+
+The plan predicted arms 2–5 would be near-indistinguishable from the mean, on the ground that
+§37 found dispersion does not persist (r(IQR) = +.19). **That prediction is wrong**, and it is
+recorded here as wrong.
+
+Every robust functional is biased against the mean on a right-skewed distribution — median −1.21
+(WR), trimmed −0.87, Huber −0.53, p60 +0.90. The natural defence is that the whole failure is
+that level shift. It is not. Recentring each arm by its **training-fold** mean offset against μ̂,
+so it is unbiased by construction, leaves every arm worse and at WR makes the losses *sharper*:
+
+| recentred arm | WR gain | WR p | RB gain | RB p |
+|---|---|---|---|---|
+| Huber | −0.137 | **.0006** | −0.030 | .540 |
+| trimmed 20% | −0.275 | **.0017** | −0.079 | .378 |
+| p60 | −0.688 | .0049 | −0.323 | .053 |
+| median | −0.697 | .0128 | −0.227 | .222 |
+
+The WR ordering is **monotone in how much of the tail is discarded** — Huber (−0.14) < trimmed
+(−0.27) < median ≈ p60 (−0.69). A mistuned constant would scatter around zero; a dose-response
+says the direction is wrong.
+
+> **The boom weeks are signal, not contamination.** The forecast target is next season's *mean*
+> PPG, and the sample mean is the efficient estimator of a mean. Robust estimators buy resistance
+> to outliers by discarding information, and there is no contamination here to resist: a 38-point
+> game is a real observation of the very quantity being estimated.
+
+The pre-registered expectation conflated two things. §37 says last season's *shape* does not
+predict next season's *shape*. That is silent on which estimator of *location* best predicts next
+season's *level*. The bake-off answers the second question, and the answer is the arithmetic mean.
+
+### 43.7 §S4 — the rebuild
+
+`scripts/50_build_board.py` is now the only board builder. One pass, from raw weekly logs and the
+2026 ADP pull plus the frozen fitted objects (deep isotonic knots, tier variances). Every layer is
+a named column, in the order applied:
+
+    adp → pi_market → mu_hat → B → theta_star → value_prior
+        → view_shift → value_post_views → replacement → vorp → floor_gap → final
+
+Output `results/board_2026.csv`, 204 players (88 WR / 68 RB / 24 TE / 24 QB). Arms: WR ADP-rank
+1–30 take θ*, everything else is market-anchored, per §P4 — unchanged.
+
+**Reproduction, so any change is attributable.** With the stored board's *rounded* replacement
+constants the rebuild reproduces `results/board_2026_overall_vorp.csv` to machine precision on
+every layer: `value_post_views` 5.3e-15, `vorp` 5.3e-15, `floor_gap` 1.8e-15, `final` 5.3e-15.
+The rebuild is a re-expression, not a new board.
+
+**Replacement, derived rather than asserted.** Replacement is the value of the best player at a
+position that the draft does *not* consume. In a 12-team league the top 140 picks are the rostered
+pool; on the 2026 12-team board those 140 are 63 WR / 44 RB / 19 QB / 14 TE. So replacement at a
+position with n drafted is the **(n+1)-th** best realised season total, averaged over 2021–25 with
+recency half-life 2 (the same weighting §39 adopted for the prior) and divided by 17:
+
+| pos | n in top 140 | rank used | weighted season total | **replacement PPG** |
+|---|---|---|---|---|
+| RB | 44 | 45th | 105.557 | **6.209** |
+| WR | 63 | 64th | 108.494 | **6.382** |
+| TE | 14 | 15th | 133.725 | **7.866** |
+| QB | 19 | 20th | 205.752 | **12.103** |
+
+The alternative not chosen was a fixed positional rank (RB24/WR36 and so on), which hard-codes a
+lineup assumption the market may not share; deriving n from the board's own composition lets the
+market tell us how many of each position are actually consumed. De-rounding the stored constants
+is the *only* intended difference from the previous board: max |Δfinal| = 0.0038 PPG, Spearman
+0.999994, 5/204 rank changes, all adjacent swaps.
+
+**Floor.** p25 of PPR over **scheduled** weeks 2023–25, missed games entered as zeros, with
+suspensions removed from the denominator (Rice's six 2025 weeks are the only encoded case) and no
+floor computed below 34 eligible weeks. The alternative not chosen — p25 over games *played* —
+measures performance conditional on availability, which μ̂ already carries; a floor has to answer
+"what does this roster slot give me in a bad week", and a week he did not play is a bad week.
+Recomputed here from raw and asserted equal to `results/floor_scheduled.csv` on all 180 shared
+rows. The reference is **positional**, the median p25 among the top 70 by `vorp` with usable
+history — WR 4.6625, RB 6.1500, TE 7.0250, QB 9.8200 — and λ = 0.10, so the floor tilts the board
+without ranking it. Players without usable history take gap 0: **never a penalty for absence of
+evidence.**
+
+**Views applied exactly once,** enforced by five assertions in the builder, because this project
+has had the double-application bug before: (a) the BL prior is `value_prior` bit-identical;
+(b) `pi_market` is re-derived from ADP alone and compared exactly, so nothing view-shaped can have
+entered the prior; (c) Σ is diagonal and every unviewed player moves by < 1e-9; (d) the per-view
+decomposition sums to the total shift (max error 3.6e-15); (e) applying the same 31 views a second
+time *moves* 31 players — if it were a no-op the prior would already contain them, which is
+precisely the bug.
+
+### 43.8 What round 7b establishes
+
+1. **The estimator of central tendency has now been tested and it survives.** Seven challengers,
+   two positions, one pre-registered rule, no adoption. μ̂ is a recency-weighted arithmetic mean
+   because the arithmetic mean is the right estimator of the thing being forecast — not by
+   default.
+2. **It survives on evidence, not on absence of evidence, in one direction only.** The robust
+   arms are rejected *with* a mechanism (dose-response in tail-discarding, surviving de-biasing).
+   Arms 3, 4, 7 and 8 are inside their MDEs and remain genuinely open.
+3. **§P's partial-season finding is real and its correction belongs in B.** That is the live
+   modelling item and it is pre-registered for round 8, untouched on this board.
+4. **The board is now one script.** Every number on it can be traced from a raw weekly log to a
+   named column without leaving `scripts/50_build_board.py`.
+
+Artefacts: `scripts/59_sectionS_bakeoff.py`, `scripts/59b_sectionS_diagnostics.py`,
+`scripts/50_build_board.py`; `results/sectionS_notes.md`, `results/sectionS_bakeoff.csv`,
+`results/sectionS_holdout.csv`, `results/sectionS_sensitivity.csv`,
+`results/sectionS_diagnostics.csv`, `results/sectionS_predictions.csv`,
+`results/board_2026.csv`.
+
+---
+
+## 43. §V — The flat top of m(ADP): artifact or finding?
+
+### 43.1 The defect, and why it mattered
+
+The incumbent m(·) is isotonic regression on log ADP. Isotonic fitted values are a **step function**:
+wherever the pool-adjacent-violators algorithm merges a block, every player in it receives the
+identical value. On the 2026 WR board this collapsed the entire sharp end — **m(ADP) = 18.08 for
+every WR from ADP 3.1 to 10.2.** Price separates nobody there, so μ̂ carries the whole ordering
+unaided. That is the mechanical reason one soft season dropped Ja'Marr Chase from 3rd to 6th, and
+the reason Drake London (μ̂ 15.66, lowest in the top nine) was carried to 9th on price alone.
+
+Two readings were possible a priori, and the project's rule is that inspection does not settle it:
+**(a) genuine** — the market really cannot distinguish the top few picks and realised PPG really is
+flat there; **(b) artifact** — isotonic is a step estimator fitted on ~30 players per season and the
+top decile is thin, so PAVA merges blocks a smoother monotone estimator would separate.
+
+### 43.2 Candidates
+
+All monotone decreasing in log ADP — the constraint is never relaxed — all fitted with the same h = 2
+season weights, all evaluated in the same 11-fold harness. Nothing else in the estimator changes.
+
+- **(i) iso** — the incumbent step function.
+- **(ii) cir** — **centred isotonic regression** (Oron & Flournoy 2017), the standard remedy for
+  exactly this artifact: collapse each isotonic plateau to its weight-centroid in x, then interpolate
+  linearly between centroids. Still monotone, strictly decreasing within a former plateau, and it
+  introduces **no new tuning parameter** — which is why it is the headline candidate rather than a
+  smoother with a bandwidth to choose.
+- **(iii) ols** — PPG ~ log ADP, strictly monotone by construction, maximally smooth.
+- **(iv) half** — 0.5·iso + 0.5·cir.
+
+Fitted values at the sharp end (full-sample h = 2), showing what each does to the plateau:
+
+| ADP | iso | cir | ols |
+|---|---|---|---|
+| 3.1 | 18.08 | 18.87 | 19.21 |
+| 3.9 | 18.08 | 18.63 | 18.70 |
+| 5.4 | 18.08 | 18.30 | 17.99 |
+| 6.4 | 18.08 | 18.13 | 17.61 |
+| 10.2 | 18.08 | 17.54 | 16.58 |
+| 10.7 | 18.08 | 17.47 | 16.48 |
+
+### 43.3 Result — a real but non-significant improvement, and none of it comes from the top
+
+| arm | RMSE | mean Spearman | DM vs (i) | p |
+|---|---|---|---|---|
+| (i) isotonic — incumbent | 3.4196 | .4729 | — | — |
+| (ii) centred isotonic | **3.4093** | .4800 | +0.560 | .588 |
+| (iii) OLS log ADP | 3.4147 | .4749 | +0.238 | .817 |
+| (iv) 0.5·iso + 0.5·cir | 3.4121 | **.4816** | +0.779 | .454 |
+
+**All three candidates beat the incumbent on both metrics** — three for three, as in §39.5 — but
+every DM statistic is small and **0/3 survive BH at q = .10**. Not adopted.
+
+The decisive diagnostic is the restriction to the region the change was designed to fix:
+
+| RMSE on ADP ≤ 12 only (n = 51) | |
+|---|---|
+| isotonic | **4.0381** |
+| centred isotonic | 4.0420 |
+| OLS | 4.0927 |
+| half | 4.0378 |
+
+**On the flat region itself, breaking the plateau does not help — CIR is marginally worse and OLS
+clearly worse.** Whatever small gain CIR produces pooled comes from elsewhere on the curve, not from
+the top. So the plateau is not what was costing accuracy.
+
+### 43.4 Is PPG actually flat up there? The direct test
+
+| ADP bin | n | mean ADP | mean PPG |
+|---|---|---|---|
+| 0–3 | 7 | 2.06 | 18.93 |
+| 3–5 | 8 | 4.23 | 19.19 |
+| 5–7 | 12 | 6.28 | 17.94 |
+| 7–9 | 8 | 8.02 | 17.16 |
+| 9–12 | 16 | 10.51 | 18.59 |
+
+The bin means are **non-monotone** and span 2.04 PPG against a within-region SD of 3.96. Formally,
+within ADP ≤ 12: OLS slope on log ADP **−0.539 (p = .585)**, Spearman **−0.033 (p = .816)**. Outside
+it, ADP > 12 (n = 270): slope **−2.433, p = 5.0 × 10⁻⁸**.
+
+**The honest limit, computed for this design rather than transplanted (the §28 lesson).** SE of the
+top-region slope is 0.980, so the 95% CI is **[−2.46, +1.38]** and the MDE at 80% power is **2.75
+PPG per log-ADP unit**. The rest-of-board slope of −2.433 **lies inside that interval.** This test
+therefore *cannot* distinguish "flat at the top" from "as steep as everywhere else" — the point
+estimate is 4.5× flatter, but n = 51 does not support the stronger claim.
+
+### 43.5 Verdict, and what it means for the board
+
+**Not adopted, and the flat top is not established as an artifact.** Two independent lines agree that
+forcing a slope through the top does not help: in-sample, ADP has no detectable relationship with PPG
+within the top 12; out-of-sample, every estimator that breaks the plateau does *no better there*.
+What cannot be claimed, on n = 51, is that the region is genuinely flat — only that nothing in this
+data supports paying for the distinction.
+
+The practical consequence is the useful part, and it inverts how the defect was framed. **At the top
+of the board the market prior is uninformative about ordering by construction and by evidence** — so
+μ̂ and views carrying the ordering there is not a bug to be fixed, it is the correct division of
+labour. Chase's rank-6 position was never a curve defect. §T ruled out the μ̂ side, §U ruled out the
+precision side, and §V now rules out the m(·) side. The disagreement was an opinion, and it is
+recorded as one (`v40_chase`, owner-set, dated, scoreable).
+
+**CIR is retained as the pre-registered candidate for the next confirmatory round**, on the same
+terms as the h = 2 prior in §39.5: it improves both metrics in the right direction on a family of
+three, and it deserves a single-arm test on a design that has not already been used to select it.

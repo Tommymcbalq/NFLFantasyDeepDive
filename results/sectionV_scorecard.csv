@@ -1,0 +1,5 @@
+arm,rmse,spearman,dm_t,dm_p
+(i)   isotonic [incumbent],3.4196,0.4729,,
+(ii)  centred isotonic,3.4093,0.48,0.56,0.5879
+(iii) OLS log ADP,3.4147,0.4749,0.238,0.8166
+(iv)  0.5*iso + 0.5*cir,3.4121,0.4816,0.779,0.4542
