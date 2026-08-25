@@ -73,6 +73,16 @@ SLOTS_REQ = {'QB': 1, 'RB': 2, 'WR': 2, 'TE': 1, 'DEF': 1}
 FLEX_N = 2
 TARGETS_FILE = "data/drafts/named_targets.csv"
 PLAN_FILE = "data/drafts/plan_2026.csv"
+EXCLUDE_FILE = "data/drafts/excluded.txt"
+
+
+def excluded():
+    """Players the owner has taken off his board (injury / role). They still carried high
+    model value, so best-available-by-value kept surfacing them."""
+    try:
+        return {l.strip() for l in open(EXCLUDE_FILE) if l.strip()}
+    except Exception:
+        return set()
 
 
 def plan_for(pick):
@@ -297,7 +307,7 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
 
     P = availability(b, gone, until)
     b = b.assign(p_now=P, gone=gone)
-    live = b[~b.gone].copy()
+    live = b[~b.gone & ~b.name.isin(excluded())].copy()
 
     def inj(r):
         st = str(r.get('injury_status') or '')
@@ -312,7 +322,7 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         print("\a", end="")
         nxt2 = next((p for p in mine_picks if p > nxt), None)
         Pn = availability(b, gone, (nxt2 - nxt) if nxt2 else 0, seed=1)
-        live = live.assign(p_next=Pn[~gone])
+        live = live.assign(p_next=Pn[b.index.isin(live.index)])
         held_pos = [id2.get(i, ('', '?'))[1] for i in mine_ids]
         nd = needs(held_pos)
         if nd:
@@ -344,10 +354,22 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
                 print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{r['name'][:22]:<23}{C['rst']}"
                       f"{C['yel']}{vs}{C['rst']} {_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']}"
                       f" {bar(r.p_now,14)}{inj(r)}")
-        print(f"\n  {C['dim']}full board opens 1 pick before you{C['rst']}")
-        return
-
-    show_plan(nxt, live)
+        # The plan list is written pre-draft; once it is half dead it stops representing
+        # the board. Always show live best-available beside it.
+        print()
+        for pos in ('RB', 'WR', 'TE', 'QB'):
+            g = live[live.position == pos].nlargest(3, 'final')
+            if not len(g):
+                continue
+            cells = []
+            for _, r in g.iterrows():
+                cells.append(f"{C['b']}{C['wht']}{r['name'].split()[-1][:11]}{C['rst']}"
+                             f"{C['yel']}{r.final:5.1f}{C['rst']}"
+                             f"{_pc(r.p_now)}{r.p_now*100:4.0f}%{C['rst']}")
+            print(f"  {POSBG[pos]}{C['b']}{C['wht']} {pos} {C['rst']}  " + "   ".join(cells))
+        print()
+    else:
+        show_plan(nxt, live)
     box_top(f"{C['b']}SURVIVAL TO YOUR PICK{C['rst']}")
     c = live[live.position.isin(['RB','WR']) & (live.tier <= 5)]
     c = c.sort_values(['tier','order','BOARD']).head(13)
