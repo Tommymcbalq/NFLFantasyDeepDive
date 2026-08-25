@@ -19,7 +19,7 @@ Usage:
     python3 scripts/80_live_draft.py --once          # single snapshot
     python3 scripts/80_live_draft.py --draft <id>    # override draft id
 """
-import argparse, json, re, sys, time, urllib.request
+import argparse, json, os, re, sys, time, urllib.request
 import numpy as np, pandas as pd
 
 DRAFT_ID = "1389519993699328000"          # 2026 real draft, verified pre_draft
@@ -89,14 +89,29 @@ def needs(held_pos):
     return out
 
 
-def panel_positions(live, nxt2, held_pos, inj):
-    """Best available at EVERY position, not just RB/WR, sized by what the roster still needs."""
+LATE_CUT = 60   # past here the board is not trustworthy; lead with the market
+
+
+def panel_positions(live, nxt2, held_pos, inj, pick=0, named=None):
+    """Best available at EVERY position, not just RB/WR, sized by what the roster still needs.
+
+    Past LATE_CUT the ordering flips to ADP. Our per-game projection has no validated edge
+    that deep -- it cannot see role, depth chart or contract -- so leading with it there is
+    dressing up noise. The owner's named guys are marked and float to the top instead.
+    """
+    late = pick > LATE_CUT
+    named = named or set()
     nd = dict(needs(held_pos))
     order = sorted(['RB', 'WR', 'TE', 'QB'], key=lambda p: (p not in nd, p))
     for pos in order:
-        g = live[live.position == pos].sort_values(['tier', 'order', 'BOARD'])
+        g = live[live.position == pos].copy()
         if not len(g):
             continue
+        g['mine'] = ~g.name.isin(named)          # False sorts first
+        if late:
+            g = g.sort_values(['mine', 'adp_price_used'])
+        else:
+            g = g.sort_values(['tier', 'order', 'BOARD'])
         k = 4 if pos in nd else 2
         need_tag = (f"{C['bgred']}{C['b']}{C['wht']} NEED {C['rst']} " if pos in nd else "")
         print(f"\n  {POSBG[pos]}{C['b']}{C['wht']} {pos} {C['rst']} {need_tag}")
@@ -104,8 +119,11 @@ def panel_positions(live, nxt2, held_pos, inj):
             pn = r.get('p_next', float('nan'))
             pv = "" if pn != pn else f"{_pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']} {bar(pn,10)}"
             t = f"{pos}{int(r.tier)}" if r.tier == r.tier else pos
-            print(f"    {C['dim']}{t:<4}{C['rst']} {C['b']}{C['wht']}{r['name'][:24]:<25}{C['rst']}"
-                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
+            star = f"{C['yel']}{C['b']}*{C['rst']}" if r['name'] in named else " "
+            adp = r.get('adp_price_used', float('nan'))
+            adps = "  -  " if adp != adp else f"{adp:5.0f}"
+            print(f"   {star}{C['dim']}{t:<4}{C['rst']} {C['b']}{C['wht']}{r['name'][:23]:<24}{C['rst']}"
+                  f"{C['dim']}adp{adps} #{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
 
 
 def panel_targets(live, nxt2, inj):
@@ -228,8 +246,10 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
     # ---------------- recent + roster
     recent = sorted(picks, key=lambda x: x['pick_no'])[-6:]
     if recent:
-        r = "  ".join(f"{C['gry']}{p['pick_no']}{C['rst']} "
-                      f"{(p.get('metadata') or {}).get('last_name','')}" for p in recent)
+        r = "  ".join(
+            f"{C['dim']}{p['pick_no']}{C['rst']} "
+            f"{POSC.get((p.get('metadata') or {}).get('position'), C['wht'])}"
+            f"{(p.get('metadata') or {}).get('last_name','')}{C['rst']}" for p in recent)
         print(f"  {C['dim']}last:{C['rst']} {r}")
     id2 = dict(zip(b.sleeper_id, zip(b.name, b.position)))
     mine_ids = [str(p['player_id']) for p in picks if p.get('player_id')
@@ -265,7 +285,8 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
                   "  ".join(f"{C['b']}{C['wht']}{p}{C['rst']}{C['dim']}x{n}{C['rst']}" for p, n in nd))
         print(f"  {C['dim']}back-at column = P(available at your next pick"
               f"{', '+str(nxt2) if nxt2 else ''}){C['rst']}")
-        panel_positions(live, nxt2, held_pos, inj)
+        named = set(pd.read_csv(TARGETS_FILE).name) if os.path.exists(TARGETS_FILE) else set()
+        panel_positions(live, nxt2, held_pos, inj, nxt, named)
         panel_targets(live, nxt2, inj)
         print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}")
         return

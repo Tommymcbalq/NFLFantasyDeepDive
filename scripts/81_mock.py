@@ -119,7 +119,9 @@ def render(b, chosen, a):
           136: '14.06', 145: '15.05'}
     print(f"  {C['b']}your pick{C['rst']} {C['wht']}{rr.get(last,'?')}{C['rst']} (overall {last})")
     if room:
-        r = "  ".join(f"{C['gry']}{p}{C['rst']} {name[i].split()[-1]}" for p, i in room[-7:])
+        r = "  ".join(f"{C['dim']}{p}{C['rst']} "
+                      f"{POSC.get(b.position.iat[i],C['wht'])}{name[i].split()[-1]}{C['rst']}"
+                      for p, i in room[-7:])
         print(f"  {C['dim']}last:{C['rst']} {r}")
     if mine_at:
         r = "  ".join(f"{POSC.get(b.position.iat[i],C['wht'])}{name[i]}{C['rst']}"
@@ -148,7 +150,9 @@ def render(b, chosen, a):
               "  ".join(f"{C['b']}{C['wht']}{p}{C['rst']}{C['dim']}x{n}{C['rst']}" for p, n in nd))
     print(f"  {C['dim']}back-at column = P(available at your next pick, {nxt}){C['rst']}")
 
-    L.panel_positions(live, nxt, held_pos, inj)
+    import os as _os
+    named = set(_pd.read_csv(L.TARGETS_FILE).name) if _os.path.exists(L.TARGETS_FILE) else set()
+    L.panel_positions(live, nxt, held_pos, inj, last, named)
     L.panel_targets(live, nxt, inj)
 
     if nxt:
