@@ -36,9 +36,9 @@ SOFT = [
     ('Puka Nacua',           5, 0.20, 'high'),
     ('Justin Jefferson',    16, 0.99, 'high'),   # owner: 100
     ('Saquon Barkley',      16, 0.70, 'high'),
-    ('Ashton Jeanty',       16, 0.25, 'med'),
+    ('Ashton Jeanty',       16, 0.45, 'med'),   # owner: may fall to me
     ("De'Von Achane",       16, 0.15, 'med'),
-    ('CeeDee Lamb',         16, 0.10, 'low'),
+    ('CeeDee Lamb',         16, 0.10, 'low'),   # owner doubts it, but live
     ('Rashee Rice',         27, 0.70, 'high'),
     ('Malik Nabers',        27, 0.20, 'high'),
     ('Chris Olave',         27, 0.10, 'high'),
