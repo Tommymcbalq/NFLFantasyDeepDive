@@ -50,3 +50,9 @@ CAVEAT: the room order past pick 39 is ADP-derived, not observed (owner's mock s
 The owner states his league is sharp and WAITS ON QB, so every QB row above is likely too
 pessimistic. Owner's read supersedes for QB. FFC/ESPN disagree by 30-50 picks on Johnston,
 Tucker, Watson and Purdy, so those rows are source-sensitive too.
+
+## REMIND ME (owner priority flags)
+- **MarShawn Lloyd (RB, GB)** — owner is high on him, getting great snaps. Depth chart 2 directly
+  behind Josh Jacobs (Questionable, groin), who the owner expects to miss time / lose the job.
+  Room has him ~164 but owner thinks his league is sharp enough to take him late. SAY HIS NAME
+  around picks 125-136. Do not let the draft end without flagging him.

@@ -19,7 +19,7 @@ Usage:
     python3 scripts/80_live_draft.py --once          # single snapshot
     python3 scripts/80_live_draft.py --draft <id>    # override draft id
 """
-import argparse, json, sys, time, urllib.request
+import argparse, json, re, sys, time, urllib.request
 import numpy as np, pandas as pd
 
 DRAFT_ID = "1389519993699328000"          # 2026 real draft, verified pre_draft
@@ -30,9 +30,65 @@ OWNERSHIP = "data/drafts/pick_ownership_2026.csv"
 N_SIM = 4000
 
 
+
+# ------------------------------------------------------------------ display
+C = dict(rst="\033[0m", b="\033[1m", dim="\033[2m",
+         red="\033[38;5;203m", grn="\033[38;5;114m", yel="\033[38;5;221m",
+         blu="\033[38;5;75m",  mag="\033[38;5;177m", orn="\033[38;5;215m",
+         cyn="\033[38;5;80m",  gry="\033[38;5;245m", wht="\033[38;5;255m",
+         bgblu="\033[48;5;24m", bggrn="\033[48;5;22m", bgred="\033[48;5;52m")
+POSC = {'RB': C['grn'], 'WR': C['blu'], 'TE': C['orn'], 'QB': C['mag']}
+W = 78
+
+def _pc(p):
+    return C['grn'] if p >= .70 else (C['yel'] if p >= .35 else C['red'])
+
+_ANSI = re.compile(r"\033\[[0-9;]*m")
+def vlen(s):
+    """visible width: ANSI escapes occupy no columns, so len() over-counts and
+    every box border drawn from it comes out short."""
+    return len(_ANSI.sub("", s))
+
+def box_top(t=""):
+    t = f" {t} " if t else ""
+    pad = W - 2 - vlen(t)
+    print(f"{C['cyn']}\u250c{t}{'\u2500'*max(pad,0)}\u2510{C['rst']}")
+
+def box_bot():
+    print(f"{C['cyn']}\u2514{'\u2500'*(W-2)}\u2518{C['rst']}")
+
+def line(s="", raw_len=None):
+    n = raw_len if raw_len is not None else len(s)
+    print(f"{C['cyn']}\u2502{C['rst']}{s}{' '*max(W-2-n,0)}{C['cyn']}\u2502{C['rst']}")
+
+def bar(p, width=22):
+    fill = int(round(p*width))
+    return f"{_pc(p)}{'\u2588'*fill}{C['gry']}{'\u2591'*(width-fill)}{C['rst']}"
+
+def tag(pos, tier):
+    t = f"{pos}{int(tier)}" if tier == tier else pos
+    return f"{POSC.get(pos,C['wht'])}{C['b']}{t:<4}{C['rst']}"
+
+
 def get(url):
     with urllib.request.urlopen(url, timeout=20) as r:
         return json.load(r)
+
+
+def resolve_draft(league_id, fallback):
+    """Find the league's live draft. If the draft is recreated its id changes, so trusting a
+    hard-coded constant is a real failure mode on the night."""
+    try:
+        ds = get(f"https://api.sleeper.app/v1/league/{league_id}/drafts")
+        live = [d for d in ds if d.get('status') in ('drafting', 'paused', 'pre_draft')]
+        if live:
+            d = sorted(live, key=lambda x: x.get('created', 0))[-1]
+            if d['draft_id'] != fallback:
+                print(f"  [resolved draft_id {d['draft_id']} (status {d['status']})]")
+            return d['draft_id']
+    except Exception as e:
+        print(f"  [could not resolve draft id, using default: {e}]", file=sys.stderr)
+    return fallback
 
 
 def load():
@@ -64,64 +120,105 @@ def availability(b, gone_mask, picks_until, n=N_SIM, seed=0):
     return out
 
 
-def snapshot(b, own, draft_id, replay=None):
+def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
     picks = get(f"https://api.sleeper.app/v1/draft/{draft_id}/picks")
     if replay is not None:
-        # rehearsal: truncate a completed draft to its first `replay` picks so the
-        # conditional logic can be checked against a board state we already know.
         picks = sorted(picks, key=lambda x: x['pick_no'])[:replay]
     made = {str(p['player_id']) for p in picks if p.get('player_id')}
     n_made = len(picks)
+    if n_made == last_n[0]:
+        return
+    last_n[0] = n_made
+    print("\033[2J\033[H", end="")
     gone = b.sleeper_id.isin(made).to_numpy()
 
-    mine = own[own.owner == ME].overall.tolist()
-    nxt = next((p for p in mine if p > n_made), None)
-    on_clock = own[own.overall == n_made + 1]
-    who = on_clock.owner.iloc[0] if len(on_clock) else "-"
+    mine_picks = own[own.owner == ME].overall.tolist()
+    nxt = next((p for p in mine_picks if p > n_made), None)
+    oc = own[own.overall == n_made + 1]
+    who = oc.owner.iloc[0] if len(oc) else "-"
+    is_me = (who == ME)
 
-    print("=" * 74)
-    print(f"picks made: {n_made}   on the clock: pick {n_made+1} -> {who}")
+    # ---------------- header
+    ttl = "ON THE CLOCK" if is_me else f"pick {n_made+1}"
+    bg = C['bggrn'] if is_me else C['bgblu']
+    hdr = f" DRAFT  \u2502  {n_made} made  \u2502  {ttl}: {who} "
+    print(f"{bg}{C['b']}{C['wht']}{hdr}{' '*max(W-len(hdr),0)}{C['rst']}")
+
     if nxt is None:
-        print("no picks left for you")
-        return
+        print(f"{C['gry']}  no picks left for you{C['rst']}"); return
     until = nxt - 1 - n_made
-    rnd = own[own.overall == nxt].iloc[0]
-    print(f"YOUR NEXT: overall {nxt} ({rnd.rnd}.{rnd.pick_in_rnd:02d})   {until} picks away")
-    print("=" * 74)
+    rr = own[own.overall == nxt].iloc[0]
+    col = C['grn'] if until == 0 else (C['yel'] if until <= 3 else C['gry'])
+    print(f"  {C['b']}your next{C['rst']} {C['wht']}{rr.rnd}.{rr.pick_in_rnd:02d}{C['rst']}"
+          f" (overall {nxt})   {col}{until} picks away{C['rst']}")
+
+    # ---------------- recent + roster
+    recent = sorted(picks, key=lambda x: x['pick_no'])[-6:]
+    if recent:
+        r = "  ".join(f"{C['gry']}{p['pick_no']}{C['rst']} "
+                      f"{(p.get('metadata') or {}).get('last_name','')}" for p in recent)
+        print(f"  {C['dim']}last:{C['rst']} {r}")
+    id2 = dict(zip(b.sleeper_id, zip(b.name, b.position)))
+    mine_ids = [str(p['player_id']) for p in picks if p.get('player_id')
+                and own[own.overall == p['pick_no']].owner.eq(ME).any()]
+    if mine_ids:
+        r = "  ".join(f"{POSC.get(id2.get(i,('','?'))[1],C['wht'])}{id2.get(i,(i,''))[0]}{C['rst']}"
+                      for i in mine_ids)
+        print(f"  {C['b']}yours:{C['rst']} {r}")
+    print()
 
     P = availability(b, gone, until)
     b = b.assign(p_now=P, gone=gone)
     live = b[~b.gone].copy()
 
+    def inj(r):
+        st = str(r.get('injury_status') or '')
+        if st in ('IR', 'PUP', 'Out', 'Doubtful'):
+            return f" {C['red']}{C['b']}[{st}]{C['rst']}"
+        if st == 'Questionable':
+            bp = str(r.get('injury_body_part') or '')
+            return f" {C['yel']}[Q{'' if bp in ('Undisclosed','nan','') else ' '+bp[:12]}]{C['rst']}"
+        return ""
+
     if until == 0:
-        print("\n*** YOU ARE ON THE CLOCK ***")
-        c = live[live.position.isin(['RB', 'WR'])].sort_values(['tier', 'order', 'BOARD'])
-        print("\nBEST AVAILABLE BY YOUR TIERS")
-        for _, r in c.head(10).iterrows():
-            print(f"   {r.position}{int(r.tier)}  {r['name'][:22]:<23} board#{int(r.BOARD):<4}")
-        tq = live[live.position.isin(['TE', 'QB'])].sort_values('BOARD').head(3)
+        box_top(f"{C['b']}BEST AVAILABLE \u2014 YOUR TIERS{C['rst']}")
+        c = live[live.position.isin(['RB','WR'])].sort_values(['tier','order','BOARD']).head(11)
+        for _, r in c.iterrows():
+            nm = r['name'][:24]
+            body = (f"  {tag(r.position,r.tier)} {C['wht']}{nm:<25}{C['rst']}"
+                    f"{C['gry']}board#{int(r.BOARD):<5}{C['rst']}{inj(r)}")
+            print(f"{C['cyn']}\u2502{C['rst']}{body}{' '*max(W-2-vlen(body),0)}{C['cyn']}\u2502{C['rst']}")
+        box_bot()
+        tq = live[live.position.isin(['TE','QB'])].sort_values('BOARD').head(4)
         if len(tq):
-            print("   market TE/QB: " + ", ".join(f"{r['name']} ({r.position})" for _, r in tq.iterrows()))
+            print(f"  {C['dim']}market TE/QB:{C['rst']} " + "  ".join(
+                f"{POSC[r.position]}{r['name']}{C['rst']}" for _, r in tq.iterrows()))
+        print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}\a")
         return
 
-    print("\nWILL THEY LAST TO YOUR PICK?   (survival, conditional on picks already made)")
-    c = live[live.position.isin(['RB', 'WR']) & (live.tier <= 5)]
-    c = c.sort_values(['tier', 'order', 'BOARD']).head(14)
+    box_top(f"{C['b']}SURVIVAL TO YOUR PICK{C['rst']}")
+    c = live[live.position.isin(['RB','WR']) & (live.tier <= 5)]
+    c = c.sort_values(['tier','order','BOARD']).head(13)
     for _, r in c.iterrows():
-        bar = "#" * int(round(r.p_now * 20))
-        flag = "  <-- WILL NOT LAST" if r.p_now < .35 else ""
-        print(f"   {r.position}{int(r.tier)}  {r['name'][:22]:<23}{r.p_now:>5.0%} |{bar:<20}|{flag}")
+        nm = r['name'][:22]
+        warn = f" {C['red']}{C['b']}GONE{C['rst']}" if r.p_now < .35 else ""
+        body = (f"  {tag(r.position,r.tier)} {C['wht']}{nm:<23}{C['rst']}"
+                f"{_pc(r.p_now)}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now)}{warn}")
+        print(f"{C['cyn']}\u2502{C['rst']}{body}{' '*max(W-2-vlen(body),0)}{C['cyn']}\u2502{C['rst']}")
+    box_bot()
 
-    # a tier is 'about to break' if its remaining members are unlikely to survive together
-    print("\nTIER STATUS")
-    for pos in ('RB', 'WR'):
+    print(f"\n  {C['b']}TIERS{C['rst']}")
+    for pos in ('RB','WR'):
+        parts = []
         for t in sorted(live[live.position == pos].tier.dropna().unique()):
+            if t > 5: continue
             g = live[(live.position == pos) & (live.tier == t)]
-            if len(g) == 0 or t > 5:
-                continue
-            exp = g.p_now.sum()
-            print(f"   {pos}{int(t)}: {len(g)} left, expect {exp:.1f} to reach you"
-                  + ("   *** EMPTIES BEFORE YOU ***" if exp < 0.8 else ""))
+            e = g.p_now.sum()
+            col = C['red'] if e < 0.8 else (C['yel'] if e < 2 else C['grn'])
+            parts.append(f"{col}{pos}{int(t)}:{len(g)}({e:.1f}){C['rst']}")
+        if parts:
+            print(f"    {POSC[pos]}{pos}{C['rst']}  " + "  ".join(parts))
+    print(f"    {C['dim']}n(expected to reach you); red = tier empties first{C['rst']}")
 
 
 def main():
@@ -132,6 +229,8 @@ def main():
     ap.add_argument('--replay', type=int, default=None)
     a = ap.parse_args()
     b, own = load()
+    if a.draft == DRAFT_ID and a.replay is None:
+        a.draft = resolve_draft(LEAGUE_ID, DRAFT_ID)
     while True:
         try:
             snapshot(b, own, a.draft, a.replay)
@@ -139,7 +238,10 @@ def main():
             print(f"  [poll failed: {e}]", file=sys.stderr)
         if a.once:
             break
-        time.sleep(a.every)
+        try:
+            time.sleep(a.every)
+        except KeyboardInterrupt:
+            print("\nstopped."); break
 
 
 if __name__ == '__main__':
