@@ -194,7 +194,12 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         return ""
 
     if until == 0:
+        nxt2 = next((p for p in mine_picks if p > nxt), None)
+        Pn = availability(b, gone, (nxt2 - nxt) if nxt2 else 0, seed=1)
+        live = live.assign(p_next=Pn[~gone])
         box_top(f"{C['b']}BEST AVAILABLE \u2014 YOUR TIERS{C['rst']}")
+        print(f"  {C['dim']}{'':<5}{'player':<26}{'#':<5}"
+              f"{('back at '+str(nxt2)) if nxt2 else '':<12}{C['rst']}")
         c = live[live.position.isin(['RB','WR'])].sort_values(['tier','order','BOARD']).head(11)
         for _, r in c.iterrows():
             nm = r['name'][:24]
