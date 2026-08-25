@@ -72,6 +72,36 @@ def tag(pos, tier):
 SLOTS_REQ = {'QB': 1, 'RB': 2, 'WR': 2, 'TE': 1, 'DEF': 1}
 FLEX_N = 2
 TARGETS_FILE = "data/drafts/named_targets.csv"
+PLAN_FILE = "data/drafts/plan_2026.csv"
+
+
+def plan_for(pick):
+    try:
+        d = pd.read_csv(PLAN_FILE)
+        row = d[d.pick == pick]
+        return [] if not len(row) else [x.strip() for x in str(row.order.iloc[0]).split('|')]
+    except Exception:
+        return []
+
+
+def show_plan(pick, live):
+    """The declared plan for THIS pick, struck through where the room has taken someone."""
+    pl = plan_for(pick)
+    if not pl:
+        return
+    on = set(live.name)
+    parts = []
+    for n in pl:
+        if n in on:
+            parts.append(f"{C['grn']}{C['b']}{n}{C['rst']}")
+        else:
+            parts.append(f"{C['dim']}{C['red']}{n}{C['rst']}")
+    print(f"  {C['b']}PLAN{C['rst']} " + f" {C['dim']}>{C['rst']} ".join(parts))
+    nxt = next((n for n in pl if n in on), None)
+    if nxt:
+        print(f"  {C['bggrn']}{C['b']}{C['wht']} TAKE {nxt} {C['rst']}")
+    else:
+        print(f"  {C['bgred']}{C['b']}{C['wht']} PLAN EXHAUSTED - go off the board below {C['rst']}")
 
 
 def needs(held_pos):
@@ -232,7 +262,8 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
     # ---------------- header
     ttl = "ON THE CLOCK" if is_me else f"pick {n_made+1}"
     bg = C['bggrn'] if is_me else C['bgblu']
-    hdr = f" DRAFT  \u2502  {n_made} made  \u2502  {ttl}: {who} "
+    stamp = time.strftime("%H:%M:%S")
+    hdr = f" DRAFT  \u2502  {n_made} made  \u2502  {ttl}: {who}  \u2502  live {stamp} "
     print(f"{bg}{C['b']}{C['wht']}{hdr}{' '*max(W-len(hdr),0)}{C['rst']}")
 
     if nxt is None:
@@ -286,17 +317,19 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         print(f"  {C['dim']}back-at column = P(available at your next pick"
               f"{', '+str(nxt2) if nxt2 else ''}){C['rst']}")
         named = set(pd.read_csv(TARGETS_FILE).name) if os.path.exists(TARGETS_FILE) else set()
+        show_plan(nxt, live)
         panel_positions(live, nxt2, held_pos, inj, nxt, named)
         panel_targets(live, nxt2, inj)
         print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}")
         return
 
+    show_plan(nxt, live)
     box_top(f"{C['b']}SURVIVAL TO YOUR PICK{C['rst']}")
     c = live[live.position.isin(['RB','WR']) & (live.tier <= 5)]
     c = c.sort_values(['tier','order','BOARD']).head(13)
     for _, r in c.iterrows():
         nm = r['name'][:22]
-        warn = f" {C['red']}{C['b']}GONE{C['rst']}" if r.p_now < .35 else ""
+        warn = f" {C['red']}{C['b']}WON'T LAST{C['rst']}" if r.p_now < .35 else ""
         print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<24}{C['rst']}"
               f"{_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now)}{warn}{inj(r)}")
     box_bot()
