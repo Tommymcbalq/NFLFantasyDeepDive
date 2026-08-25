@@ -327,6 +327,26 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}")
         return
 
+    # Far from the pick: stay compact. The full board only matters when you are about to
+    # act on it; until then what you want is who is picking and whether the plan survives.
+    if until > 1:
+        seq = own[(own.overall > n_made) & (own.overall < nxt)].sort_values('overall')
+        print(f"  {C['b']}UP NEXT{C['rst']}  " + "  ".join(
+            f"{C['dim']}{int(r.overall)}{C['rst']} {r.owner[:12]}" for _, r in seq.head(6).iterrows()))
+        show_plan(nxt, live)
+        pl = [n for n in plan_for(nxt) if n in set(live.name)]
+        if pl:
+            g = live[live.name.isin(pl)].set_index('name').loc[pl].reset_index()
+            print()
+            for _, r in g.head(5).iterrows():
+                v = r.get('final', float('nan'))
+                vs = "     " if v != v else f"{v:5.1f}"
+                print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{r['name'][:22]:<23}{C['rst']}"
+                      f"{C['yel']}{vs}{C['rst']} {_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']}"
+                      f" {bar(r.p_now,14)}{inj(r)}")
+        print(f"\n  {C['dim']}full board opens 1 pick before you{C['rst']}")
+        return
+
     show_plan(nxt, live)
     box_top(f"{C['b']}SURVIVAL TO YOUR PICK{C['rst']}")
     c = live[live.position.isin(['RB','WR']) & (live.tier <= 5)]
