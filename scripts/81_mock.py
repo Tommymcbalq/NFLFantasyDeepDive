@@ -31,6 +31,38 @@ OPENING = ['Jahmyr Gibbs', 'Bijan Robinson', "Ja'Marr Chase"]
 P_NACUA_AT_4 = 0.80
 
 
+ALIAS = {'cmc': 'christian mccaffrey', 'arsb': 'amon-ra st brown', 'csb': 'amon-ra st brown',
+         'jsn': 'jaxon smith-njigba', 'jt': 'jonathan taylor', 'etn': 'travis etienne',
+         'mhj': 'marvin harrison', 'btj': 'brian thomas', 'dj': 'dj moore',
+         'ceedee': 'ceedee lamb', 'saquon': 'saquon barkley', 'jamo': 'jameson williams',
+         'tae': 'davante adams', 'qj': 'quentin johnston', 'ladd': 'ladd mcconkey',
+         'puka': 'puka nacua', 'bijan': 'bijan robinson', 'gibbs': 'jahmyr gibbs'}
+
+
+def match(raw, name, idx, chosen, taken=None):
+    """Resolve a typed string to one player.
+
+    Substring-on-full-name alone silently fails for the shorthand actually used at a draft
+    ('cmc', 'jsn', 'jt'), and a failed match just re-renders the same screen, which reads
+    as the tool ignoring you. Aliases first, then last name, then substring.
+    """
+    q = ALIAS.get(raw.lower(), raw.lower())
+    # `taken` is the ROOM's board state. Without it the mock happily let you draft a player
+    # the room had already taken, which is not a simulation of anything.
+    avail = [i for i in range(len(name))
+             if i not in chosen and (taken is None or not taken[i])]
+    last = [i for i in avail if name[i].lower().split()[-1].startswith(q)]
+    if len(last) == 1:
+        return last
+    sub = [i for i in avail if q in name[i].lower()]
+    if len(sub) == 1:
+        return sub
+    starts = [i for i in avail if name[i].lower().startswith(q)]
+    if len(starts) == 1:
+        return starts
+    return sub or last or starts
+
+
 def render(b, chosen, a):
     name = b.name.to_numpy()
     idx = {n.lower(): i for i, n in enumerate(name)}
@@ -130,7 +162,7 @@ def render(b, chosen, a):
                 parts.append(f"{col}{pos}{int(t)}:{len(g)}({e:.1f}){C['rst']}")
             if parts:
                 print(f"    {POSC[pos]}{pos}{C['rst']}  " + "  ".join(parts))
-    return last
+    return last, taken
 
 
 def main():
@@ -149,7 +181,7 @@ def main():
             chosen.append(hit[0])
 
     while len(chosen) < len(MY):
-        render(b, chosen, a)
+        _, taken = render(b, chosen, a)
         try:
             raw = input(f"\n  {C['b']}take:{C['rst']} ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -161,13 +193,20 @@ def main():
         if raw.lower() == 'undo':
             if chosen: chosen.pop()
             continue
-        hit = [i for n, i in idx.items() if raw.lower() in n and i not in chosen]
+        hit = match(raw, name, idx, chosen, taken)
         if not hit:
-            input(f"  {C['red']}no match for '{raw}' - enter to retry{C['rst']}")
+            gone_hit = match(raw, name, idx, chosen, None)
+            if gone_hit:
+                who = ", ".join(name[i] for i in gone_hit[:3])
+                input(f"  {C['red']}{C['b']}{who} already drafted{C['rst']} - enter to retry")
+            else:
+                input(f"  {C['red']}no player matching '{raw}'{C['rst']} - enter to retry")
             continue
         if len(hit) > 1:
-            exact = [i for i in hit if name[i].lower().startswith(raw.lower())]
-            hit = exact or hit
+            print(f"  {C['yel']}ambiguous:{C['rst']} " +
+                  ", ".join(name[i] for i in hit[:6]))
+            input("  be more specific - enter to retry")
+            continue
         chosen.append(hit[0])
         print(f"  {C['grn']}-> {name[hit[0]]}{C['rst']}")
 
