@@ -19,7 +19,7 @@ spec = importlib.util.spec_from_file_location("live", "scripts/80_live_draft.py"
 L = importlib.util.module_from_spec(spec)
 sys.modules["live"] = L
 spec.loader.exec_module(L)
-C, POSC, W = L.C, L.POSC, L.W
+C, POSC, POSBG, W = L.C, L.POSC, L.POSBG, L.W
 
 MY = [5, 16, 27, 34, 47, 54, 65, 74, 85, 87, 105, 116, 125, 136, 145]
 
@@ -136,20 +136,31 @@ def render(b, chosen, a):
         return ""
 
     L.box_top(f"{C['b']}BEST AVAILABLE — YOUR TIERS{C['rst']}")
-    c = live[live.position.isin(['RB', 'WR'])].sort_values(['tier', 'order', 'BOARD']).head(11)
+    nxt = MY[len(chosen) + 1] if len(chosen) + 1 < len(MY) else None
+    Pn = L.availability(b, taken, (nxt - last) if nxt else 0)
+    bn = b.assign(p_next=Pn)
+    c = bn[~taken & bn.position.isin(['RB', 'WR'])].sort_values(['tier','order','BOARD']).head(11)
+    print(f"  {C['dim']}{'':<5}{'player':<26}{'#':<5}{'back at ' + str(nxt) if nxt else '':<12}{C['rst']}")
+    # Recommend WITHIN position only. The owner's tier numbers are per-position, so "RB2"
+    # and "WR2" are not the same tier and must not be compared -- doing so would have the
+    # tool silently resolve the Saquon-vs-Jefferson call, which is his to make.
+    rec = {}
     for _, r in c.iterrows():
         nm = r['name'][:24]
+        pn = r.p_next
+        cur = rec.get(r.position)
+        if nxt and (cur is None or (r.tier, pn) < (cur[2], cur[1])):
+            rec[r.position] = (r['name'], pn, r.tier)
         print(f"  {L.tag(r.position, r.tier)} {C['b']}{C['wht']}{nm:<26}{C['rst']}"
-              f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{inj(r)}")
+              f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}"
+              f"{L._pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']} {L.bar(pn,12)}{inj(r)}")
     L.box_bot()
     tq = live[live.position.isin(['TE', 'QB'])].sort_values('BOARD').head(4)
     if len(tq):
         print(f"  {C['dim']}market TE/QB:{C['rst']} " + "  ".join(
             f"{POSC[r.position]}{r['name']}{C['rst']}" for _, r in tq.iterrows()))
 
-    nxt = MY[len(chosen) + 1] if len(chosen) + 1 < len(MY) else None
     if nxt:
-        Pn = L.availability(b, taken, nxt - last)
         b3 = b.assign(p_now=Pn, gone=taken)
         lv = b3[~b3.gone & b3.position.isin(['RB', 'WR']) & (b3.tier <= 5)]
         print(f"\n  {C['b']}TIERS{C['rst']} {C['dim']}(expected to reach your next pick, {nxt}){C['rst']}")
@@ -162,6 +173,16 @@ def render(b, chosen, a):
                 parts.append(f"{col}{pos}{int(t)}:{len(g)}({e:.1f}){C['rst']}")
             if parts:
                 print(f"    {POSC[pos]}{pos}{C['rst']}  " + "  ".join(parts))
+    if rec and nxt:
+        print()
+        for pos in ('RB', 'WR'):
+            if pos in rec:
+                nm, pn, t = rec[pos]
+                print(f"  {POSBG[pos]}{C['b']}{C['wht']} BEST {pos} {C['rst']} "
+                      f"{C['b']}{C['wht']}{nm:<24}{C['rst']}"
+                      f"{C['dim']}{pos}{int(t)}, {pn*100:.0f}% back at {nxt}{C['rst']}")
+        if len(rec) == 2:
+            print(f"  {C['dim']}cross-position is your call - tiers are per-position{C['rst']}")
     return last, taken
 
 

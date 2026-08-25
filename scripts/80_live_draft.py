@@ -198,14 +198,32 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         c = live[live.position.isin(['RB','WR'])].sort_values(['tier','order','BOARD']).head(11)
         for _, r in c.iterrows():
             nm = r['name'][:24]
+            pn = r.get('p_next', float('nan'))
+            pv = "" if pn != pn else f"{_pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']} {bar(pn,12)}"
             print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<26}{C['rst']}"
-                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{inj(r)}")
+                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
         box_bot()
         tq = live[live.position.isin(['TE','QB'])].sort_values('BOARD').head(4)
         if len(tq):
             print(f"  {C['dim']}market TE/QB:{C['rst']} " + "  ".join(
                 f"{POSC[r.position]}{r['name']}{C['rst']}" for _, r in tq.iterrows()))
-        print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}\a")
+        rec = {}
+        for _, r in c.iterrows():
+            pn = r.get('p_next', float('nan'))
+            if pn != pn: continue
+            cur = rec.get(r.position)
+            if cur is None or (r.tier, pn) < (cur[2], cur[1]):
+                rec[r.position] = (r['name'], pn, r.tier)
+        print()
+        for pos in ('RB','WR'):
+            if pos in rec:
+                nm, pn, t = rec[pos]
+                print(f"  {POSBG[pos]}{C['b']}{C['wht']} BEST {pos} {C['rst']} "
+                      f"{C['b']}{C['wht']}{nm:<24}{C['rst']}"
+                      f"{C['dim']}{pos}{int(t)}, {pn*100:.0f}% back at {nxt2}{C['rst']}")
+        if len(rec) == 2:
+            print(f"  {C['dim']}cross-position is your call - tiers are per-position{C['rst']}")
+        print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}")
         return
 
     box_top(f"{C['b']}SURVIVAL TO YOUR PICK{C['rst']}")
