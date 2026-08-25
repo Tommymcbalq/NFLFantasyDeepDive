@@ -152,8 +152,12 @@ def panel_positions(live, nxt2, held_pos, inj, pick=0, named=None):
             star = f"{C['yel']}{C['b']}*{C['rst']}" if r['name'] in named else " "
             adp = r.get('adp_price_used', float('nan'))
             adps = "  -  " if adp != adp else f"{adp:5.0f}"
+            # val = VORP over POSITIONAL replacement (delta_RB applied): cross-position
+            # comparable, which the per-position tier deliberately is not.
+            v = r.get('final', float('nan'))
+            vs = "     " if v != v else f"{v:5.1f}"
             print(f"   {star}{C['dim']}{t:<4}{C['rst']} {C['b']}{C['wht']}{r['name'][:23]:<24}{C['rst']}"
-                  f"{C['dim']}adp{adps} #{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
+                  f"{C['yel']}{vs}{C['rst']}{C['dim']} adp{adps} #{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
 
 
 def panel_targets(live, nxt2, inj):
@@ -330,8 +334,10 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
     for _, r in c.iterrows():
         nm = r['name'][:22]
         warn = f" {C['red']}{C['b']}WON'T LAST{C['rst']}" if r.p_now < .35 else ""
-        print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<24}{C['rst']}"
-              f"{_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now)}{warn}{inj(r)}")
+        v = r.get('final', float('nan'))
+        vs = "     " if v != v else f"{v:5.1f}"
+        print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<22}{C['rst']}{C['yel']}{vs}{C['rst']} "
+              f"{_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now,14)}{warn}{inj(r)}")
     box_bot()
 
     print(f"\n  {C['b']}TIERS{C['rst']}")
