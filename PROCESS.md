@@ -797,3 +797,44 @@ yet for §R's viability and simultaneously the reason its simulated survival cur
 **Carried to round 10:** (1) `calibrated μ̂ + age` as a pre-registered spec; (2) the WR replacement
 identification is still the weakest number in L5 — 2024 leaned on one 8-game observation; (3)
 τ-persistence pre-test remains unrunnable at n = 1 draft.
+
+---
+
+## Round 10 — the data arm rebuilt (§X, 2026-08-25)
+
+Pre-registered in `EDA_PLAN10.md`, operational definitions in `results/sectionX_notes.md` PART 1
+before the first fit. One change to the value layer, carried over from round 9's "not adopted,
+because we found it by decomposition" list.
+
+**What was done.** μ̂ was replaced by `mu_star = a + b*mu_hat + c*log[f(age)/f(age-1)]`, all three
+coefficients fitted per LOSO training fold, and §H's era-3 age curve **refitted inside each fold**
+rather than taken published (§W1's version let the held-out season into the curve). The
+re-implementation reproduces `age_curve_era.csv` to 3e-16 and every §W1 component number to four
+decimals before anything new was read.
+
+**Result: ADOPT.** LOSO 3.776 → 3.548 (WR, p = .012, 9/10 folds) and 4.491 → 4.092 (RB, p = .0004,
+9/10); the genuine 2015–21 → 2022–24 holdout — coefficients *and* curve fitted on the early
+window — improves at both positions. The pre-specified overlap held almost exactly: the
+combination is worth 71% (WR) / 82% (RB) of the sum of its parts, against a prediction made from
+§W1's numbers that was right to 0.02 and 0.12 PPG².
+
+**The finding that matters more than the verdict.** The gain does not survive the blend at WR:
++0.101 inside eq. (7) against its own MDE of 0.626. Chased to mechanism — 73% of the correction
+points *toward* the market price, which is the move eq. (7) already makes through B, so the
+posterior has pre-empted it. corr(Δ, residual) falls 0.328 → 0.084 at WR but only 0.409 → 0.187 at
+RB, which is why RB survives (+0.475, p = .007). And §P4's arm rule sends μ* to WR ADP ≤ 30 only:
+**the correction is delivered where it is undetectable and withheld where it is detectable.**
+
+**Board.** `70_build_board.py --mu-star`, off by default so the incumbent still reproduces to
+5.3e-15 with all new layers disabled. Thirty players move. Over-dispersed players regress (Nacua
+−2.47, Chase −2.19, St. Brown −2.01 on the calibration term), old players fall (Adams −1.87 and
+Evans −1.58 on the age term; −10 and −8 board places), young thin-history players rise (Burden,
+Odunze, Egbuka). Jefferson and A.J. Brown leave the top 24; Love and Skattebo enter. The apparent
+QB movement is the known top-70 floor-reference instability (§47.4), zero under the positional
+reference.
+
+**Carried to round 11:** (1) **§P4's arm rule** — with μ*, RB's posterior no longer sits *behind*
+the market (−0.354 → +0.122) but does not beat it either (p = .673); revisiting the rule is now
+the sharpest open question, and it must be pre-registered, not slipped in; (2) RB's age loading c
+is the least determined quantity in the spec (16.55 ± 3.11 across folds); (3) WR replacement
+identification and the τ-persistence pre-test, both unchanged from round 9.

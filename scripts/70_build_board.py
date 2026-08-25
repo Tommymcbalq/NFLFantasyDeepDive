@@ -55,6 +55,7 @@ Usage:
     python3 scripts/70_build_board.py --ablation            # + the layer-ablation table
 """
 import argparse
+import json
 import sys
 import warnings
 from importlib import import_module
@@ -70,16 +71,18 @@ from sectionM_common import norm_name, collapse_initials      # noqa: E402
 bl = import_module("19_bl_overlay")                            # noqa: E402
 
 # ------------------------------------------------------------------ frozen constants
-ADP_FILE = "data/adp/adp_ppr_2026_all_20260809.csv"           # board universe + prices
+ADP_FILE = "data/adp/adp_ppr_2026_all_20260824.csv"           # board universe + prices
 ADP_FILE_COMP = "data/adp/adp_ppr_2026_12team_20260812.csv"   # replacement composition
 VIEWS_FILE = "results/views_2026_typed.csv"
 TRANSLATION = "results/adp_espn_ffc_equiv_2026.csv"
 W1_PROJ = "results/sectionW1_projection_2026.csv"             # WS1, if it ships
 W1_LOSO = "results/sectionW1_loso_predictions.csv"
+MU_STAR_COEFS = "results/mu_star_coefs_2026.json"           # §X, written by 75_mu_star.py
 TAU_BL = 0.5                     # §J declared BL tau, never fitted
 LAMBDA = 0.10                    # §S4 floor weight
 HL = 1.0                         # recency half-life of mu_hat
 DEEP_ARM_CUT = 30                # §P4: WR ADP-rank <= 30 takes theta*, else market
+ARM_POSITIONS = {"WR"}           # positions the theta* arm is permitted for (see --arm-positions)
 FLOOR_YEARS = (2023, 2025)
 FLOOR_WEEKS = 18
 FLOOR_MIN_SCHED = 34
@@ -96,11 +99,55 @@ REPL_GMIN_BRACKET = (4, 6, 8, 10, 12)   # declared sensitivity bracket
 SUSPENSIONS = {"rashee rice": {2025: 6}}
 ALIASES = {"hollywood brown": "marquise brown", "joshua palmer": "josh palmer"}
 
-LAYERS = ("eb", "projection", "views_player", "views_structural", "replacement", "floor")
+LAYERS = ("eb", "mu_star", "projection", "views_player", "views_structural",
+          "replacement", "floor")
 
 
 def key(s):
     return collapse_initials(norm_name(s))
+
+
+# ================================================================== L3.0 mu_star (§X)
+def mu_star_column(b, pos):
+    """§X's data arm:  mu_star = a + b*mu_hat + c*log[f(age)/f(age-1)].
+
+    a, b, c and the era-3 age curve f come from results/mu_star_coefs_2026.json, written by
+    scripts/75_mu_star.py.  Inside the LOSO evaluation they are fitted per training fold; for
+    2026 there is no held-out year, so the identical estimator is run on the whole 2015-2024
+    panel.  Nothing here is fitted on the board.
+
+    Two properties are worth stating where they are used rather than in a note:
+      * b < 1 REGRESSES mu_hat toward the positional mean -- the over-dispersion §W1 measured;
+      * the age term is the LOG-RATIO of adjacent curve values, so it prices the transition
+        from age-1 to age, not the player's position on the curve.  A 30-year-old who has
+        already been 30 on the curve is not charged twice.
+    Age is (Sept 1 of the board year - birth_date)/365.25, the project's fixed convention.
+    """
+    f = ROOT / MU_STAR_COEFS
+    if not f.exists():
+        return b, f"§X coefficients missing ({MU_STAR_COEFS}): mu_star unavailable"
+    C = json.loads(f.read_text())
+    if pos not in C:
+        return b, f"§X has no {pos} coefficients"
+    grid = np.asarray(C["grid"], float)
+    curve = np.asarray(C[pos]["curve"], float)
+    meta = pd.read_csv(ROOT / "data/meta/players_meta.csv", low_memory=False,
+                       usecols=["gsis_id", "birth_date"]).dropna(subset=["gsis_id"])
+    bd = meta.set_index("gsis_id").birth_date
+    age = ((pd.Timestamp("2026-09-01") - pd.to_datetime(b.gsis_id.map(bd)))
+           .dt.days / 365.25)
+    b["age_2026"] = age.values
+    z = np.log(np.interp(age.values, grid, curve)
+               / np.interp(age.values - 1.0, grid, curve))
+    b["mu_star_z"] = z
+    b["mu_star"] = C[pos]["a"] + C[pos]["b"] * b.mu_hat + C[pos]["c"] * z
+    # eq. (7) with mu_star in place of mu_hat.  B, V, tau2 and pi_market are untouched.
+    nop = b.n_eff == 0
+    b["theta_star_mu_star"] = np.where(nop | b.mu_star.isna(), b.theta_star,
+                                       (1 - b.B) * b.mu_star + b.B * b.pi_market)
+    n_bad = int(b.mu_star.isna().sum())
+    return b, (f"§X {pos}: a={C[pos]['a']:.4f} b={C[pos]['b']:.4f} c={C[pos]['c']:.4f} "
+               f"(n={C[pos]['n']}, {C['fitted_on']}); {n_bad} players without a birth date")
 
 
 # ================================================================== raw weekly data
@@ -266,7 +313,14 @@ def price_column(b, mode):
         t = t[t.pool == "matched"].set_index("k")
         b["adp_espn"] = b.k.map(t.espn_adp)
         b["adp_ffc_equiv_espn"] = b.k.map(t.ffc_equiv)
-    if mode == "consensus":
+    if mode == "espn":
+        # ESPN's default league is 10-team / 1 TE, which is THIS owner's league. FFC's pool
+        # deflates elite TEs by ~17 picks (Bowers 40.7 vs 23.7, McBride 35.3 vs 19.5), and the
+        # market prior inherits that error wholesale. Price on the translated ESPN rank where a
+        # match exists, else fall back to FFC.
+        e = b.adp_ffc_equiv_espn
+        b["adp_price_used"] = np.where(e.notna(), e, b.adp)
+    elif mode == "consensus":
         e = b.adp_ffc_equiv_espn
         b["adp_price_used"] = np.where(e.notna(), np.exp(0.5 * (np.log(b.adp) + np.log(e))), b.adp)
     else:
@@ -440,8 +494,14 @@ def build_wr_rb(wk, pos, adp, mu_arm, price_mode):
     b["theta_star"] = np.where(nop, b.pi_market,
                                (1 - b.B) * b.mu_hat.fillna(0) + b.B * b.pi_market)
     b["post_var"] = np.where(nop, b.tau2, 1.0 / (1.0 / b.V + 1.0 / b.tau2))
-    b["arm"] = np.where((b.adp_rank <= DEEP_ARM_CUT) & (pos == "WR"),
+    # The P4 rule restricted theta* to WR. Section 49 then found mu* helps RB MORE than WR
+    # (+3.39, p=.0004 vs +1.71, p=.012), so the restriction is backwards for RB, and TE/QB
+    # never see their own data at all -- Warren and Loveland come out identical because they
+    # share an isotonic ADP step. --arm-positions widens the permitted set. Default unchanged.
+    b["arm"] = np.where((b.adp_rank <= DEEP_ARM_CUT) & (pos in ARM_POSITIONS),
                         "theta_star", "pi_market (market-anchored)")
+    b, msg = mu_star_column(b, pos)
+    print("  " + msg)
     b["position"] = pos
     b["thin_data_flag"] = np.where(nop, "no NFL rows: full shrinkage to market",
                                    np.where(b.n_seasons == 1, "single season", ""))
@@ -457,9 +517,16 @@ def build_te_qb(pos, price_mode):
     d["position"] = pos
     d["k"] = d.name.map(key)
     d["post_var"] = d.post_SD ** 2
-    d["arm"] = np.where(d.arm_ii_adopted, "theta_star", "pi_market (market-anchored)")
+    d["arm"] = np.where(d.arm_ii_adopted | (pos in ARM_POSITIONS),
+                        "theta_star", "pi_market (market-anchored)")
     d["sigma2_tier"] = np.nan
     d["n_games"] = np.nan
+    # §X is a WR/RB object: it is fitted on the §W1 panels and its age curve is §H's, which
+    # exists only for WR and RB.  TE/QB take value_prior = pi_market at both settings of the
+    # layer, so mu_star is left undefined rather than silently defaulted to something.
+    for c in ("age_2026", "mu_star_z", "mu_star"):
+        d[c] = np.nan
+    d["theta_star_mu_star"] = d.theta_star
     d = price_column(d, price_mode)
     if price_mode == "consensus":
         # TE/QB carry no stored knot file here; the §O curve is applied through its own fitted
@@ -478,9 +545,21 @@ def chain(base, wk, cfg, fl_cache, rep_cache, views, quiet=True):
     b = base.copy()
     diag = {}
 
+    # ---- L3.0: which data arm feeds eq. (7) --------------------------------
+    # OFF  -> theta_star, i.e. eq. (7) on raw mu_hat: the incumbent, bit-for-bit.
+    # ON   -> theta_star_mu_star, i.e. eq. (7) on mu* = a + b*mu_hat + c*log[f(age)/f(age-1)].
+    # The switch changes ONE column.  B, V, tau2, pi_market, post_var, the arm rule and every
+    # layer above are untouched, which is what makes this ablatable rather than a rebuild.
+    if cfg.get("mu_star"):
+        b["theta_used"] = b.theta_star_mu_star
+        diag["mu_star"] = int((b.theta_star_mu_star != b.theta_star).sum())
+    else:
+        b["theta_used"] = b.theta_star
+        diag["mu_star"] = "layer off"
+
     # ---- L3: EB arm rule ---------------------------------------------------
     if cfg["eb"]:
-        b["value_prior"] = np.where(b.arm == "theta_star", b.theta_star, b.pi_market)
+        b["value_prior"] = np.where(b.arm == "theta_star", b.theta_used, b.pi_market)
     else:
         b["value_prior"] = b.pi_market            # pure market anchoring, no own history
     b["proj"] = np.nan
@@ -676,7 +755,8 @@ def ablate(base, wk, cfg0, fl, rep, views):
                          note=note))
 
     # cumulative
-    seq = [("L3 market only (pi_market)", dict(cfg0, eb=False, views_player=False,
+    seq = [("L3 market only (pi_market)", dict(cfg0, eb=False, mu_star=False,
+                                               views_player=False,
                                                views_structural=False, replacement=False,
                                                floor=False)),
            ("+ L3 EB posterior", dict(cfg0, views_player=False, views_structural=False,
@@ -690,12 +770,13 @@ def ablate(base, wk, cfg0, fl, rep, views):
         bb, _ = chain(base, wk, c, fl, rep, views)
         cmp("CUM  " + tag, bb)
     # leave-one-out
-    for lay, note in [("eb", "value_prior = pi_market for every player"),
+    for lay, note in [("mu_star", "eq.(7) on raw mu_hat instead of mu* (§X off)"),
+                      ("eb", "value_prior = pi_market for every player"),
                       ("views_player", "37 player views off"),
                       ("views_structural", "delta_RB = 0"),
                       ("replacement", "one common replacement level, no positional scarcity"),
                       ("floor", "lambda = 0")]:
-        if lay == "projection":
+        if lay == "projection" or not cfg0.get(lay, False):
             continue
         bb, _ = chain(base, wk, dict(cfg0, **{lay: False}), fl, rep, views)
         cmp("LOO  -" + lay, bb, note)
@@ -706,17 +787,26 @@ def ablate(base, wk, cfg0, fl, rep, views):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mu-arm", default="a1_mean")
-    ap.add_argument("--price", default="ffc", choices=["ffc", "consensus"])
+    ap.add_argument("--arm-positions", default="WR",
+                    help="comma list, or 'all': which positions may use the theta* arm")
+    ap.add_argument("--price", default="ffc", choices=["ffc", "consensus", "espn"])
     ap.add_argument("--replacement", default="ppg_rank",
                     choices=["ppg_rank", "total_rank_ppg", "total_div17"])
     ap.add_argument("--gmin", type=int, default=REPL_GMIN)
     ap.add_argument("--views", default=VIEWS_FILE)
     ap.add_argument("--floor-ref", default="top70", choices=["top70", "positional"])
+    ap.add_argument("--mu-star", action="store_true",
+                    help="§X: replace mu_hat with mu* = a + b*mu_hat + c*log[f(age)/f(age-1)] "
+                         "inside eq. (7).  OFF by default so the incumbent reproduces.")
     ap.add_argument("--no-projection", action="store_true")
     ap.add_argument("--ablation", action="store_true")
     ap.add_argument("--verify-incumbent", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "results/board_2026_v2.csv"))
     a = ap.parse_args()
+    global ARM_POSITIONS
+    ARM_POSITIONS = ({"WR","RB","TE","QB"} if a.arm_positions.strip().lower()=="all"
+                     else {x.strip().upper() for x in a.arm_positions.split(",") if x.strip()})
+    print(f"  theta* arm permitted for: {sorted(ARM_POSITIONS)}")
 
     wk = load_weekly()
     adp = pd.read_csv(ROOT / ADP_FILE)
@@ -729,7 +819,8 @@ def main():
              build_te_qb("TE", a.price), build_te_qb("QB", a.price)]
     keep = ["name", "team", "k", "adp", "adp_espn", "adp_ffc_equiv_espn", "adp_price_used",
             "adp_rank", "position", "tier", "n_seasons", "n_games", "mu_hat", "n_eff",
-            "pi_market", "tau2", "sigma2_tier", "V", "B", "theta_star", "post_var", "arm",
+            "pi_market", "tau2", "sigma2_tier", "V", "B", "theta_star", "age_2026",
+            "mu_star_z", "mu_star", "theta_star_mu_star", "post_var", "arm",
             "thin_data_flag"]
     base = pd.concat([p[keep] for p in parts], ignore_index=True)
     assert base.name.duplicated().sum() == 0, "duplicate player on the board"
@@ -739,13 +830,14 @@ def main():
     rep_diag, rep_wide = replacement_diagnostics(wk)
     rep_diag.to_csv(ROOT / "results/replacement_identification.csv", index=False)
 
-    cfg = dict(eb=True, projection=not a.no_projection, views_player=True,
+    cfg = dict(eb=True, mu_star=a.mu_star, projection=not a.no_projection, views_player=True,
                views_structural=True, replacement=True, floor=True, floor_ref=a.floor_ref)
     b, diag = chain(base, wk, cfg, fl, rep, views, quiet=False)
 
     order = ["rank", "name", "team", "position", "adp", "adp_rank", "adp_rank_overall", "edge",
              "adp_espn", "adp_ffc_equiv_espn", "adp_price_used", "tier", "n_seasons", "n_games",
              "mu_hat", "n_eff", "pi_market", "tau2", "sigma2_tier", "V", "B", "theta_star",
+             "age_2026", "mu_star_z", "mu_star", "theta_star_mu_star", "theta_used",
              "proj", "w_market", "w_history", "w_projection", "post_var", "arm", "value_prior",
              "view_shift_player", "value_post_views", "struct_shift", "value_ranked",
              "post_SD_bl",
@@ -759,6 +851,8 @@ def main():
     print(f"mu_arm {a.mu_arm} | price {a.price} | replacement {a.replacement} (gmin {a.gmin}) "
           f"| players {len(b)}")
     print(f"projection layer: {diag['projection']}")
+    print(f"mu_star layer (§X): {diag['mu_star']}"
+          + (" players whose eq.(7) input changed" if a.mu_star else ""))
     print(f"views: 37 player (second application would move {diag.get('n_double')} players "
           f"-> applied once) + structural delta_RB "
           f"(Omega->0 BL-limit check: max err {diag.get('struct_bl_limit_err', float('nan')):.2e})")
@@ -794,8 +888,8 @@ def main():
     print(f"floor table reproduces results/floor_scheduled.csv on all {len(chk)} shared rows")
 
     if a.verify_incumbent:
-        cfg0 = dict(eb=True, projection=False, views_player=True, views_structural=False,
-                    replacement=True, floor=True, floor_ref="top70")
+        cfg0 = dict(eb=True, mu_star=False, projection=False, views_player=True,
+                    views_structural=False, replacement=True, floor=True, floor_ref="top70")
         v = pd.read_csv(ROOT / "results/views_2026.csv")
         v["type"], v["scope"] = "player", ""
         rep0 = replacement_levels(wk, "total_div17")
@@ -834,7 +928,7 @@ def main():
         tab2, _ = ablate(base, wk, dict(cfg, floor_ref="positional"), fl, rep, views)
         tab2["floor_ref_rule"] = "positional"
         tab = pd.concat([tab, tab2], ignore_index=True)
-        tab.to_csv(ROOT / "results/board_2026_v2_ablation.csv", index=False)
+        tab.to_csv(a.out.replace(".csv", "_ablation.csv"), index=False)
         pd.set_option("display.width", 300, "display.max_colwidth", 46)
         print("\n--- LAYER ABLATION (influence on the board, not accuracy: there is no "
               "out-of-sample criterion for a view or a positional premium before January) ---")
@@ -867,7 +961,7 @@ def main():
         vs("price = consensus (FFC x translated ESPN)", bb,
            "L3.2 counterfactual; NOT adopted, see results/adp_translation_diag.md")
         cf = pd.DataFrame(rows)
-        cf.to_csv(ROOT / "results/board_2026_v2_counterfactuals.csv", index=False)
+        cf.to_csv(a.out.replace(".csv", "_counterfactuals.csv"), index=False)
         print("\n--- SPECIFICATION COUNTERFACTUALS (vs the adopted board) ---")
         print(cf.round(4).to_string(index=False))
 

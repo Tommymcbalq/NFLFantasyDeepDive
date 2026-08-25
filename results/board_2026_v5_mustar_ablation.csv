@@ -1,0 +1,25 @@
+variant,spearman,mean_abs_drank,max_abs_drank,out_of_top24,out_of_top50,mean_abs_dfinal,mean_drank_by_pos,biggest_mover,note,floor_ref_rule
+CUM  L3 market only (pi_market),0.6566424719593472,36.068627450980394,165,16,23,2.8174834906516733,"{'QB': -105.0, 'RB': 40.9, 'TE': -37.7, 'WR': 7.3}",Kyler Murray (-165),,top70
+CUM  + L3 EB posterior,0.6532613381769865,36.205882352941174,166,16,23,2.8990086235600314,"{'QB': -106.3, 'RB': 40.1, 'TE': -37.9, 'WR': 8.4}",Sam Darnold (-166),,top70
+CUM  + L4 player views,0.6620025301962669,35.872549019607845,164,16,23,2.841147059901481,"{'QB': -105.0, 'RB': 39.5, 'TE': -37.5, 'WR': 8.3}",Kyler Murray (-164),,top70
+CUM  + L4 structural delta_RB,0.7205447696319908,31.61764705882353,161,14,23,2.3744803932348146,"{'QB': -102.4, 'RB': 24.7, 'TE': -31.9, 'WR': 17.5}",Kyler Murray (-161),,top70
+CUM  + L5.1 replacement,0.9878889823380993,6.245098039215686,42,0,1,0.26274142156862745,"{'QB': -9.5, 'RB': 0.2, 'TE': 6.1, 'WR': 0.8}",Jayden Daniels (-42),,top70
+CUM  + L5.2 floor  = FULL,1.0,0.0,0,0,0,0.0,"{'QB': 0.0, 'RB': 0.0, 'TE': 0.0, 'WR': 0.0}",Jahmyr Gibbs (+0),,top70
+LOO  -mu_star,0.9979334374624534,2.392156862745098,16,2,2,0.09082558089158875,"{'QB': -7.4, 'RB': 1.1, 'TE': 1.5, 'WR': 0.8}",Baker Mayfield (-16),eq.(7) on raw mu_hat instead of mu* (§X off),top70
+LOO  -eb,0.9993200980981123,1.3627450980392157,9,3,3,0.08162510861773234,"{'QB': 2.0, 'RB': 0.5, 'TE': -0.1, 'WR': -0.9}",Justin Jefferson (-9),value_prior = pi_market for every player,top70
+LOO  -views_player,0.9986515043359648,1.5392156862745099,28,3,1,0.11485658972882973,"{'QB': -0.3, 'RB': -0.1, 'TE': -0.1, 'WR': 0.2}",Quentin Johnston (+28),37 player views off,top70
+LOO  -views_structural,0.9635892035535829,12.529411764705882,39,4,5,0.5367671568627451,"{'QB': -17.1, 'RB': 18.0, 'TE': -5.0, 'WR': -7.9}",C.J. Stroud (-39),delta_RB = 0,top70
+LOO  -replacement,0.7461068195150221,30.215686274509803,149,13,19,2.5209473049995204,"{'QB': -100.3, 'RB': 24.0, 'TE': -28.0, 'WR': 16.4}",Kyler Murray (-149),"one common replacement level, no positional scarcity",top70
+LOO  -floor,0.9878889823380993,6.245098039215686,42,0,1,0.26274142156862745,"{'QB': -9.5, 'RB': 0.2, 'TE': 6.1, 'WR': 0.8}",Jayden Daniels (-42),lambda = 0,top70
+CUM  L3 market only (pi_market),0.687182930363062,34.970588235294116,156,16,23,2.7738413337889276,"{'QB': -97.3, 'RB': 40.2, 'TE': -39.2, 'WR': 6.1}",Daniel Jones (-156),,positional
+CUM  + L3 EB posterior,0.6841466948427816,35.09803921568628,157,16,23,2.855366466697286,"{'QB': -98.6, 'RB': 39.4, 'TE': -39.4, 'WR': 7.2}",Daniel Jones (-157),,positional
+CUM  + L4 player views,0.6924482829296563,34.76470588235294,152,16,23,2.797504903038736,"{'QB': -97.3, 'RB': 38.8, 'TE': -39.0, 'WR': 7.2}",Daniel Jones (-152),,positional
+CUM  + L4 structural delta_RB,0.7510937091405107,30.205882352941178,150,14,23,2.330838236372069,"{'QB': -94.7, 'RB': 24.0, 'TE': -33.4, 'WR': 16.4}",Daniel Jones (-150),,positional
+CUM  + L5.1 replacement,0.99068350637143,5.823529411764706,28,0,1,0.245890931372549,"{'QB': -1.8, 'RB': -0.5, 'TE': 4.6, 'WR': -0.4}",Jayden Daniels (-28),,positional
+CUM  + L5.2 floor  = FULL,1.0,0.0,0,0,0,0.0,"{'QB': 0.0, 'RB': 0.0, 'TE': 0.0, 'WR': 0.0}",Jahmyr Gibbs (+0),,positional
+LOO  -mu_star,0.9994953742640875,0.9607843137254902,10,2,2,0.05388126404086552,"{'QB': 0.0, 'RB': 0.2, 'TE': -0.5, 'WR': -0.1}",Davante Adams (-10),eq.(7) on raw mu_hat instead of mu* (§X off),positional
+LOO  -eb,0.999515163508633,0.9901960784313726,9,3,3,0.06520476548047745,"{'QB': 0.2, 'RB': 0.5, 'TE': -0.5, 'WR': -0.3}",Terry McLaurin (-9),value_prior = pi_market for every player,positional
+LOO  -views_player,0.9985285283162887,1.5980392156862746,30,3,1,0.11671933482686896,"{'QB': -0.2, 'RB': -0.0, 'TE': -0.1, 'WR': 0.1}",Quentin Johnston (+30),37 player views off,positional
+LOO  -views_structural,0.9607536875136935,13.019607843137255,36,4,5,0.4666666666666666,"{'QB': -10.9, 'RB': 19.5, 'TE': -14.8, 'WR': -8.1}",Kimani Vidal (+36),delta_RB = 0,positional
+LOO  -replacement,0.7639694397523518,30.137254901960784,139,13,19,2.4381556383328538,"{'QB': -92.8, 'RB': 24.1, 'TE': -35.3, 'WR': 16.3}",Daniel Jones (-139),"one common replacement level, no positional scarcity",positional
+LOO  -floor,0.99068350637143,5.823529411764706,28,0,1,0.245890931372549,"{'QB': -1.8, 'RB': -0.5, 'TE': 4.6, 'WR': -0.4}",Jayden Daniels (-28),lambda = 0,positional

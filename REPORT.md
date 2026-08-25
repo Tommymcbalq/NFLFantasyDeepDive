@@ -3473,3 +3473,527 @@ never fitted — applied to the one quantity the owner knows better than any fit
 
 The resulting split is the architecture in `MODEL.md`: **steps 1–7 assert value; steps 8–10 take
 availability as given and compute the decision.**
+
+---
+
+# Part X — Round 10: the data arm, rebuilt
+
+*Pre-registered in `EDA_PLAN10.md` (2026-08-25) before any combined fit; operational definitions
+fixed in `results/sectionX_notes.md` PART 1 before the script was run; executed the same day.*
+
+---
+
+## 49. §X — μ\*: the calibrated, age-aware data arm
+
+### 49.1 Why there was anything left to do, and why it could not have been done in round 9
+
+Round 9 asked whether value could be **projected from inputs** and answered no (§46, the ninth
+null). But inside that null it measured two defects in the incumbent data arm, each with its own
+LOSO support, each obtained under a pre-registration that was testing something else:
+
+| correction | WR | RB |
+|---|---|---|
+| calibrate μ̂ | 3.776 → 3.606, p = .046 | 4.491 → 4.171, p = .001 |
+| §H's age curve on μ̂ | 3.776 → 3.619, p = .008 | 4.491 → 4.341, p = .004 |
+| both | 3.547 | 4.077 |
+
+The *combination* was found by decomposing a rejected model. Under this project's own rule that
+is a specification discovered in the data, and it may not be adopted in the round that found it —
+the same rule that withdrew §P's ≥12-games interaction (§46.2). So round 9 wrote the combination
+down as a candidate and stopped. `EDA_PLAN10.md` pre-registers it as a specification, with its
+adoption rule and its falsifiable expectation both fixed in advance. This section is what came
+back.
+
+### 49.2 Notation added
+
+| symbol | meaning |
+|---|---|
+| $\hat\mu_i$ | the incumbent data arm, eq. (43.1): recency-weighted mean of season means, $h=1$ |
+| $f_e(a)$ | §H's *relative* age curve for era $e$: expected PPG at age $a$ as a multiple of the position-season mean |
+| $r_i$ | the **age transition ratio** $f_3(a_i)\,/\,f_3(a_i-1)$ for a player entering season at age $a_i$ |
+| $z_i$ | $\log r_i$ — the age term as it actually enters (X.1) |
+| $a_f, b_f, c_f$ | calibration intercept, calibration slope and age loading, fitted **within LOSO training fold $f$** |
+| $\mu^{*}_i$ | the new data arm, eq. (X.1) |
+| $\Delta_i$ | $\mu^{*}_i - \hat\mu_i$, the correction applied to player $i$ |
+| $m_i$ | $m(\mathrm{ADP}_i)$, the isotonic market prior (§8), **unchanged here** |
+| $B_i$ | $V_i/(V_i+\tau^2)$, the estimated blend weight of eq. (7), **unchanged here** |
+
+### 49.3 The two things μ̂ gets wrong, in plain language before any algebra
+
+**One: μ̂ is over-dispersed.** Regress what players actually did on what μ̂ said they would do
+and the slope is 0.667 (WR) / 0.605 (RB), not 1. A slope below one is the signature of an
+estimator that spreads players further apart than the truth spreads them: the man μ̂ ranks far
+above the pack is, on average, only two-thirds of that far above it. This is not a mystery, it
+is regression to the mean arriving on schedule — μ̂ averages a handful of noisy seasons, so its
+cross-sectional variance contains real between-player variance *plus* sampling noise, and using
+it as if it were a point estimate of the truth systematically overstates the extremes. eq. (7)
+already shrinks toward the market, but it shrinks toward $m$, not toward the positional mean,
+and those are different directions for anyone whose price disagrees with his history.
+
+**Two: μ̂ does not know how old the player is.** It is a weighted average of what he has already
+done. §H estimated, on 27 seasons and 9,546 player-seasons with player fixed effects, how
+production moves with age; §11 flagged years ago that nothing in the value chain used it. A
+28-year-old and a 24-year-old with identical histories are identical to μ̂, and they are not
+identical.
+
+**And the reason the two are not additive.** Older players have longer, better-established
+histories and therefore *higher* μ̂ on average. So part of what a calibration slope below one is
+doing is quietly deflating old players — the age correction by another name. Any honest
+combination of the two must be worth less than their sum. That expectation was written down
+before the fit (§49.7).
+
+### 49.4 The specification, and why it takes this shape rather than the obvious one
+
+    mu_star_i  =  a_f  +  b_f * mu_hat_i  +  c_f * z_i,     z_i = log[ f_3(age_i) / f_3(age_i - 1) ]   (X.1)
+
+Read left to right: **recalibrate the history, then charge one year of ageing.** Three
+parameters, all fitted on training folds only.
+
+**Why the ratio and not the level.** The obvious age term is $f_3(a_i)$ itself — how good a
+player of this age typically is. That term would be wrong here, and the reason is worth stating
+carefully. μ̂ is built from seasons the player *already played*, at ages $a_i-1, a_i-2, \ldots$
+Whatever the age curve was doing to him then is **already inside μ̂**: it is in the points. What
+μ̂ cannot know is what the next step along the curve does. So the quantity to add is the
+*increment*, not the *level*:
+
+$$\mathbb{E}[Y_{i}] \;\approx\; \underbrace{\mathbb{E}[Y_{i,\text{last}}]}_{\text{carried by }\hat\mu_i}\times\frac{f_3(a_i)}{f_3(a_i-1)}$$
+
+Using the level instead would re-level every player by his position on the curve on top of a
+history that already reflects it — charging a 30-year-old twice for being 30. Taking logs turns
+that multiplicative step into an additive term, which is what (X.1) needs, and it makes $c_f$
+interpretable: $c_f = \bar{\hat\mu}$ would reproduce the pure multiplicative form $\hat\mu\cdot r$
+exactly to first order, since $\hat\mu \cdot r \approx \hat\mu(1+z)$.
+
+That comparison is informative rather than decorative. Fitted, $c_{\mathrm{WR}} = 10.74$ against
+a mean μ̂ of ≈ 13 — the data want **about 0.8 of** the multiplicative form's age sensitivity —
+while $c_{\mathrm{RB}} = 16.77$ against a mean μ̂ of ≈ 11.9 wants **about 1.4 of** it. RBs age
+harder than §H's own relative curve implies once you have already calibrated their level; WRs
+slightly softer. Neither was imposed.
+
+**Why a fitted coefficient at all, rather than §W1's unit-coefficient multiplication.** Because
+the multiplicative form asserts $c = \bar{\hat\mu}$ without testing it, and here it can be tested
+for free. The multiplicative composition $(a_f + b_f\hat\mu)\times r$ was run as a declared
+sensitivity and lands within 0.005 (WR) / 0.010 (RB) RMSE of (X.1) — the fork does not matter
+numerically, which is the honest thing to report about a fork one has taken.
+
+**Why the age curve is refitted inside every fold.** §W1 applied §H's *published* curve, which is
+estimated on 1999–2025 — including the season being predicted. The leak is small but it is a
+leak, and this project has already been burned by one (§46.3, the end-of-season `team` label). So
+§H's estimator is re-run inside each training fold with the held-out season deleted from its
+panel: same qualification (≥8 games, ≥40 touches), same outcome $r = \mathrm{PPG}/\overline{\mathrm{PPG}}_{\text{pos},\text{season}}$,
+same natural cubic spline with interior knots at the position's pooled age quintiles, same
+player fixed effects, same anchoring. The re-implementation reproduces
+`results/age_curve_era.csv` to **3e-16** on the full sample, which is the check that licenses
+the fold version. Closing the leak *costs* 0.007 (WR) / 0.014 (RB) of RMSE. It is paid.
+
+**One identification caveat, stated because it is a genuine assumption.** Under player fixed
+effects $f$ is identified only up to an additive constant, and a ratio $f(a)/f(a-1)$ is **not**
+invariant to that constant. §H's anchoring convention — shift each era's curve so its mean over
+that era's observations equals the mean of $r$ over the same observations — is therefore part of
+this specification, not a display choice. It is inherited unchanged and applied identically in
+every fold, so it cannot vary with the result; but it is an assumption, and if §H's anchor were
+wrong, $z$ would be biased.
+
+**What is deliberately not in μ\*** (all previously tested, all rejected, listed so the omissions
+are visible): situation adjustments for team change and vacated targets (§19 — real within
+player, but the market arm already carries the move, so adjusting μ̂ double-counts, p = .44);
+availability multipliers (§46.2 — *significantly worse* than nothing, −2.36, p = .0085);
+usage/efficiency projection (§46, the ninth null).
+
+### 49.5 Results, and the split that decides what this is worth
+
+The harness first reproduces every §W1 component on the shared panel to four decimals
+(μ̂ 3.7760/4.4909, μ̂_cal 3.6059/4.1708, μ̂×r 3.6186/4.3415, both 3.5466/4.0774), so everything
+below is μ* and nothing else.
+
+**LOSO 2015–2024**, ten folds, DM on the ten yearly mean loss differentials, t(9):
+
+| | n | μ̂ | μ\* | gain | p | MDE₈₀ | obs/MDE | folds |
+|---|---|---|---|---|---|---|---|---|
+| WR, raw arm | 568 | 3.7760 | **3.5483** | +1.711 | **.0118** | 1.710 | 1.00 | 9/10 |
+| RB, raw arm | 489 | 4.4909 | **4.0917** | +3.389 | **.0004** | 1.929 | 1.76 | 9/10 |
+| WR, **inside eq. (7)** | 568 | 3.4036 | 3.3896 | +0.101 | .624 | 0.626 | 0.16 | 5/10 |
+| RB, **inside eq. (7)** | 489 | 3.7842 | **3.7199** | +0.475 | **.0066** | 0.426 | 1.12 | 9/10 |
+
+Absolute-error loss, run because PPG is right-skewed, agrees in sign and significance: WR +0.150
+(p = .029), RB +0.267 (p = .006). Residuals of the fitted form carry no leftover structure —
+corr(residual, μ̂) = −0.001 (WR) / +0.008 (RB), corr(residual, age) = −0.025 / −0.025.
+
+**Temporal holdout**, the screen that was declared binding: $(a,b,c)$ **and** the age curve fitted
+on 2015–21 only, applied to 2022–24. (This is stricter than §W1's holdout, which subset LOSO
+predictions and so still let each year borrow coefficients from later ones.)
+
+| | n_fit | n | μ̂ | μ\* | Δ | years improved |
+|---|---|---|---|---|---|---|
+| WR, raw arm | 393 | 175 | 3.6912 | **3.5325** | −0.159 | 2/3 |
+| RB, raw arm | 347 | 142 | 4.1611 | **3.7866** | −0.375 | 3/3 |
+| WR, eq. (7) | 393 | 175 | 3.3644 | 3.3599 | −0.005 | — |
+| RB, eq. (7) | 347 | 142 | 3.6441 | **3.5956** | −0.049 | — |
+
+Both screens pass, at both positions, on the raw arm and inside the posterior. **§X2 says adopt,
+and μ\* is adopted.** Two qualifications go in the record beside that verdict rather than under it:
+
+1. **The LOSO p-values are not clean α.** The components were selected on these ten folds and are
+   now combined on them. This was stated in the plan before the fit, which is why the holdout was
+   named the deciding screen in advance. Three held-out years is three observations — a direction
+   test, not a powered one.
+2. **The eq. (7) gain splits by position, and the split is not noise.** At RB the posterior
+   improves by more than its own MDE. At WR it does not move at all: +0.101 against MDE 0.626,
+   5/10 folds. A raw-arm gain that dies in the blend is not an improvement to the product, and at
+   WR it dies.
+
+**Why it dies at WR.** Write the loss differential inside the posterior. Since
+$\theta^*(\mu^*) - \theta^*(\hat\mu) = (1-B)\Delta$,
+
+$$\underbrace{2\,\mathbb{E}[(1-B)\,e_\theta\,\Delta] - \mathbb{E}[(1-B)^2\Delta^2]}_{\text{gain inside eq. (7)}}
+\qquad\text{versus}\qquad
+\underbrace{2\,\mathbb{E}[e_\mu\Delta] - \mathbb{E}[\Delta^2]}_{\text{gain on the raw arm}}$$
+
+with $e_\mu = Y-\hat\mu$ and $e_\theta = Y-\theta^*(\hat\mu)$. Two attenuations, and they are of
+different kinds. The first is mechanical: $\mathbb{E}[1-B] = 0.345$ (WR) / 0.374 (RB), so the
+useful term is scaled by about a third and the penalty by about an eighth. The second is
+substantive and is the whole story:
+
+| | corr(Δ, $e_\mu$) | corr(Δ, $e_\theta$) | corr(Δ, $m-\hat\mu$) | share of Δ pointing toward the market |
+|---|---|---|---|---|
+| WR | +0.328 | **+0.084** | +0.646 | 72.7% |
+| RB | +0.409 | **+0.187** | +0.628 | 71.8% |
+
+**The correction points where the market already points.** Two thirds of Δ is a move toward
+$m(\mathrm{ADP})$ — which is exactly what eq. (7) already does, through $B$. So the posterior has
+mostly *pre-empted* μ*, and what is left is the residual sliver the market has not already priced.
+At WR that sliver is worth +0.370 against a variance penalty of +0.275, net +0.095. At RB it is
++1.084 against +0.602, net +0.482. RB survives because its market prices these corrections less
+completely — which is the same fact §46 reported from the other side ("at RB this is essentially
+the only correctable error in the data arm") and is consistent with §H5, which found the market
+prices age *correctly*, and with §25's decomposition of why every edge test has been a null.
+
+### 49.6 What μ\* does to the board, and the uncomfortable part
+
+`scripts/70_build_board.py --mu-star` makes μ* a named layer, off by default so that the
+incumbent-reproduction assertion still runs with every new layer disabled — it does, to
+5.3e-15, and the default board is bit-identical to `board_2026_v2.csv`. The views-applied-once
+assertions and the Ω→0 structural-view check pass unchanged.
+
+**The layer reaches exactly thirty players.** §P4's arm rule sends `theta_star` only to WRs with
+ADP rank ≤ 30; every other player on the 204-man board takes `pi_market`, which μ* does not
+touch. Board Spearman .9995, mean |Δrank| 0.96, max 10.
+
+**And that is the uncomfortable part, stated plainly: μ\* is delivered to the position where its
+posterior effect is undetectable, and withheld from the position where it is detectable.** RB's
++0.475 in eq. (7) reaches nothing, because RB has no EB arm on the board.
+
+The natural response is to revisit §P4's arm rule. That would be a *new* specification, so it is
+recorded as a round-11 candidate and **not acted on**. The diagnostic that motivates it, run and
+reported either way:
+
+| stratum | m(ADP) alone | θ\*(μ̂) | θ\*(μ\*) |
+|---|---|---|---|
+| WR, ADP ≤ 30 | 3.4970 | 3.4051 (+0.625, p = .029) | **3.3912 (+0.733, p = .025)** |
+| RB, all | 3.7369 | 3.7842 (**−0.354**, p = .343) | 3.7199 (+0.122, p = .673) |
+
+μ* removes RB's *negative* point estimate against the market but does **not** produce evidence
+for adopting an RB EB arm: +0.122 with p = .673 is a null, and a null is not a licence. What μ*
+does establish on the board's own stratum is that the WR arm's edge over the market strengthens,
+0.625 → 0.733 PPG², at the same significance. That is the honest statement of the product effect:
+*not* "the posterior improved" (it did not, detectably), but "the arm the board uses beats the
+price it is competing with by more than it did."
+
+**Who moves, and it is exactly the two mechanisms.** The calibration's fixed point
+$a/(1-b) = 12.14$ sits below the mean μ̂ of the thirty arm-eligible WRs (14.72), so calibration
+pulls almost all of them **down** (mean −0.70), hardest on the most over-dispersed; the age term
+adds a mean −0.18 with a range of −1.87 to +0.97, and the two are nearly orthogonal within this
+group ($\rho = 0.19$).
+
+| player | age | μ̂ | calibration | age term | Δ value_prior | Δrank |
+|---|---|---|---|---|---|---|
+| Davante Adams | 33.7 | 16.81 | −1.26 | **−1.87** | −1.34 | −10 |
+| Ja'Marr Chase | 26.5 | 20.23 | **−2.19** | −0.33 | −1.04 | −1 |
+| Amon-Ra St. Brown | 26.9 | 19.55 | −2.01 | −0.43 | −1.01 | +1 |
+| Mike Evans | 33.0 | 13.66 | −0.41 | −1.58 | −0.86 | −8 |
+| Puka Nacua | 25.3 | 21.27 | **−2.47** | +0.26 | −0.82 | 0 |
+| … | | | | | | |
+| Rome Odunze | 24.2 | 10.96 | +0.32 | +0.63 | +0.29 | +5 |
+| Luther Burden III | 22.7 | 9.72 | +0.65 | **+0.97** | +0.31 | +5 |
+
+The two forces separate cleanly. **Over-dispersed players regress** — Nacua, Chase and St. Brown
+take the three largest calibration hits on the board and they are the three highest μ̂. **Old
+players fall** — Adams (33.7) and Evans (33.0) take the two largest age hits and lose 10 and 8
+board places, the largest rank moves μ* produces. **Young thin-history players rise**, because for
+them the calibration works *upward* (their μ̂ is below the fixed point) and the age transition is
+still positive: Burden, Odunze, Egbuka, McMillan.
+
+**The top of the board reorders, barely but visibly.** Two WRs leave the top 24 — Justin
+Jefferson (21 → 28) and A.J. Brown (20 → 26) — and two RBs enter, Jeremiyah Love and Cam
+Skattebo. Nothing in the top ten changes position by more than one place; Ja'Marr Chase and
+Amon-Ra St. Brown swap 4th and 5th.
+
+**A reporting artefact that must not be mistaken for a finding.** Under the default `top70` floor
+reference, μ* appears to move every QB down 7–16 places. It does not touch a single QB. Changing
+thirty WR values changes who is in the top 70 by VORP, which changes the *floor reference set* —
+which §47.4 already documented as unstable for QB, where it is a median over n ≤ 2. Under the
+stable positional reference the QB column of the ablation is 0.0 and mean |Δrank| falls from 2.39
+to 0.96. The ablation is reported under both rules, as §47.4 requires, and the positional one is
+the one to read.
+
+### 49.7 The pre-specified expectation, and the fact that it held
+
+`EDA_PLAN10.md` §X4 predicted, before the fit, that the two corrections overlap and that the
+combination must land materially short of the sum of its parts — because §W1 had already measured
+age on an *already calibrated* μ̂ at +0.442 (WR) and +0.752 (RB), against +1.176 / +1.311 on raw μ̂.
+
+| | μ̂ calibrated | μ̂ × r | naive sum | μ\* | overlap |
+|---|---|---|---|---|---|
+| WR | +1.287 | +1.138 | +2.425 | +1.711 | **+0.713 (29% of the sum)** |
+| RB | +2.761 | +1.356 | +4.117 | +3.389 | **+0.728 (18%)** |
+
+Predicted: 1.287 + 0.442 = 1.729 against 1.711 realised (WR); 2.761 + 0.752 = 3.513 against 3.389
+(RB). Right to within 0.02 and 0.12 PPG². The overlap is also directly visible in the
+coefficients: adding the age term raises the calibration slope from 0.667 → 0.728 (WR) and
+0.605 → 0.630 (RB). Part of what the slope was doing *was* the age correction — older players
+carry higher μ̂ — and once age is priced explicitly, the slope no longer has to do it.
+
+The fold-to-fold path of the coefficients is stable enough that none of this rests on one year:
+$b$ has sd 0.024 (WR) / 0.016 (RB) across the ten folds, $a$ sd 0.34 / 0.28. $c$ is the loose one
+— 10.50 ± 0.93 (WR) but 16.55 ± 3.11 (RB), range 10.4–20.5 — which is the correct signal that
+RB's age loading is the least well-determined quantity in the specification and the first thing
+to re-examine on more data.
+
+### 49.8 Where the gain comes from, checked rather than asserted
+
+Both mechanisms were predicted to pay in specific places. They do, and the decomposition is a
+falsification test that could have failed:
+
+| stratum | WR gain from μ\* | RB gain from μ\* |
+|---|---|---|
+| top quartile of $|\hat\mu - \bar{\hat\mu}|$ | **+5.43** | **+11.16** |
+| bottom three quartiles | +0.17 / +0.96 / +0.11 | +1.20 / +0.80 / +0.56 |
+| oldest age tercile (mean 30.3 / 29.3) | **+3.28** | **+4.69** |
+| middle tercile | +0.20 | +2.14 |
+| youngest tercile (mean 23.7 / 23.6) | +1.52 | +3.44 |
+
+Calibration pays almost entirely in the tail of μ̂ — which is what an over-dispersion correction
+is *for*, and would be evidence against the story if it did not. Age pays most in the old
+tercile, with mean corrections of −1.50 (WR) / −1.67 (RB) there against +0.81 / +1.12 in the
+young tercile. Nothing here is a new claim; it is the check that the adopted estimator is helping
+for the reasons it was adopted for.
+
+### 49.9 What §X changes, in one paragraph
+
+The data arm is no longer a raw average of a player's past. It is that average **recalibrated for
+the over-dispersion that averaging noisy seasons creates**, plus **one year of the age curve the
+project estimated in round 4 and had never used in valuation**. Three parameters, all estimated
+out of sample, no player-level input anywhere. It improves the arm decisively at both positions
+and survives a genuine temporal holdout. Inside the posterior it improves RB and does not
+detectably improve WR, because two thirds of the correction is a move toward the market price
+that eq. (7) was already making. On the board it reaches thirty receivers, regresses the
+over-dispersed, ages down the old, and lifts the young — moving two WRs out of the top 24 and two
+RBs in. And it leaves the sharpest open question of the round pointing straight at §P4's arm
+rule, which is now the round-11 candidate rather than something to be quietly changed here.
+# §50 — The owner constraint layer and the draft simulation
+
+*Belongs in REPORT.md as §50; kept standalone for reading during the draft.*
+
+---
+
+## 50.1 Notation
+
+| symbol | meaning |
+|---|---|
+| $\mathcal{P}$ | the player universe on the board; a player is indexed $j$ |
+| $\mathcal{K}$ | the owner's own picks, $\mathcal{K}=\{5,16,27,34,47,54,65,74,\dots\}$; a pick is $k$ |
+| $S_j\in\mathbb{R}$ | the **slot score** of player $j$ — a latent continuous quantity whose *rank* decides when he comes off the board |
+| $R_j$ | the **realised draft position** of $j$: the rank of $S_j$ among $\{S_1,\dots,S_{|\mathcal P|}\}$ |
+| $A_j(k)$ | **availability**: $A_j(k)=\Pr(R_j\ge k)$, the chance $j$ is still there at pick $k$ |
+| $\hat\pi_j$ | the owner's **declared** availability for $j$ at his pick $k_j$ |
+| $c_j$ | confidence class of that declaration, $c_j\in\{\text{high},\text{med},\text{low}\}$ |
+| $\sigma(c)$ | dispersion assigned to class $c$: $1.6,\;3.0,\;5.5$ |
+| $\mu_j,\ \sigma_j$ | location and dispersion of $j$'s slot distribution |
+| $e_j$ | the **room-order position** of $j$ — from the owner's mock board for picks $\le 39$, and the FFC/ESPN average ADP beyond it |
+| $\Phi$ | the standard normal CDF |
+| $T(j),\ o(j)$ | the owner's **tier** for $j$ and his order *within* that tier |
+| $\eta$ | calibration step size, $\eta=2.2$ |
+
+---
+
+## 50.2 The idea in plain language
+
+A draft is a ranking, not a set of independent events. Saying "Saquon is 70% to reach pick 16"
+is a statement about **where he falls relative to everyone else**, so a model of it has to be a
+model of the whole ordering — you cannot just attach a probability to Saquon and leave the rest
+of the board alone, because whoever *doesn't* get taken in front of him has to be taken
+somewhere, and that displaces other players.
+
+So each player gets a latent score $S_j$. Sorting the scores gives a draft. Draw many times and
+count how often each player survives to each of the owner's picks. That is the simulation.
+
+The owner's beliefs enter as constraints on $S_j$. Two things have to be true of them:
+
+1. **A declared number must come out the far end unchanged.** If the owner says 70%, the
+   simulation must report 70%, not 61%.
+2. **Confidence must do real work.** A belief held firmly should override the ADP ordering; a
+   belief held loosely should be pulled back toward it. That is shrinkage, and it is the same
+   logic as the empirical-Bayes layer in §3: *confidence is precision*, and precision is what
+   decides how far the posterior moves.
+
+---
+
+## 50.3 The model
+
+Each player's slot score is normal and independent of the others:
+
+$$S_j \sim \mathcal{N}(\mu_j,\ \sigma_j^2), \qquad R_j = \operatorname{rank}\big(S_j;\ \{S_i\}_{i\in\mathcal P}\big).$$
+
+**Default parameters** (no owner belief about $j$):
+
+$$\mu_j = e_j, \qquad \sigma_j = \begin{cases}1.40\sqrt{\pi/2}\approx 1.75 & e_j \le 39 \quad\text{(inside the observed mock)}\\[2pt] 9.0 & e_j > 39 \quad\text{(ADP only)}\end{cases}$$
+
+The two regimes are the point. Inside the mock the owner has *seen* the ordering, so dispersion
+is small and set from his own stated mean absolute error of 1.4 picks — for a half-normal,
+$\mathbb{E}|X|=\sigma\sqrt{2/\pi}$, so $\mathbb{E}|X|=1.4 \Rightarrow \sigma=1.4\sqrt{\pi/2}$.
+Beyond the mock there is no observation, only national ADP from a room that is sharper than
+national ADP, so dispersion is large.
+
+**Owner-declared parameters.** For a player with a declaration $(\hat\pi_j, c_j)$ at pick $k_j$:
+
+$$\sigma_j = \sigma(c_j), \qquad \mu_j \ \text{chosen so that}\ A_j(k_j)=\hat\pi_j .$$
+
+This is where confidence becomes shrinkage. With $\sigma_j$ small, $S_j$ is tightly concentrated
+about $\mu_j$, so $j$'s position is decided almost entirely by the declaration and barely at all
+by the common noise — the owner's number is taken literally. With $\sigma_j$ large, $j$'s
+realised rank is dominated by noise shared with everyone else, and he drifts back toward where
+the ADP ordering would have put him. **Low confidence shrinks the belief toward the market;
+high confidence does not.**
+
+---
+
+## 50.4 Why $\mu_j$ has to be calibrated rather than solved
+
+The obvious move is to invert the normal directly. Requiring $\Pr(S_j \ge k)=\hat\pi_j$:
+
+$$\Pr(S_j\ge k)=1-\Phi\!\left(\frac{k-\mu_j}{\sigma_j}\right)=\hat\pi_j
+\;\Longrightarrow\;
+\frac{k-\mu_j}{\sigma_j}=\Phi^{-1}(1-\hat\pi_j)
+\;\Longrightarrow\;
+\boxed{\ \mu_j = k-\sigma_j\,\Phi^{-1}(1-\hat\pi_j)\ }$$
+
+Sanity check: at $\hat\pi_j=\tfrac12$, $\Phi^{-1}(\tfrac12)=0$ and $\mu_j=k$ — a player expected
+exactly at your pick is a coin flip. At $\hat\pi_j=0.7$, $\Phi^{-1}(0.3)=-0.524$, so
+$\mu_j = k+0.524\sigma_j$ — more available means drafted later. Both correct.
+
+**But this solves the wrong equation.** Availability is not $\Pr(S_j\ge k)$; it is
+$\Pr(R_j\ge k)$, and $R_j$ is a rank among $|\mathcal P|$ *simultaneous* draws. The map from the
+marginal distribution of $S_j$ to the distribution of its rank depends on the parameters of
+**every other player**. There is no closed form, and the discrepancy is not small — it is
+exactly the displacement effect described in §50.2.
+
+So the closed form is used only as a starting point, and $\mu_j$ is then driven to the target by
+a fixed point. Writing $\hat A^{(t)}_j(k)$ for the Monte Carlo availability at iteration $t$:
+
+$$\mu_j^{(t+1)} \;=\; \mu_j^{(t)} \;-\; \eta\left(\hat A^{(t)}_j(k)-\hat\pi_j\right)$$
+
+iterated until $\max_j\big|\hat A_j(k)-\hat\pi_j\big| < 0.012$.
+
+**The sign is the whole content of that line.** If simulated availability *exceeds* the declared
+value, the player is surviving too often, so he must be made to go **earlier**, which means
+$\mu_j$ must **decrease**. Getting this backwards makes the iteration diverge, and it diverges
+to the flattering answer — every declared player reads 100% available — which is why it has to
+be stated explicitly rather than left to inspection.
+
+---
+
+## 50.5 Hard zeros
+
+A hard zero is a player the owner states will never reach him. The naive implementation sets
+$\mu_j=1$: taken first overall, hence never available.
+
+**That is wrong, and wrong in a way that corrupts the whole board.** A hard zero means "gone
+before *my* pick", not "gone before *everyone's*". Pinning six players to slot 1 piles them at
+the front of the ordering and displaces every other player about six picks later — in the build
+where this was live it reported Jonathan Taylor 76% to reach pick 16, which is absurd for a
+player the room takes eighth.
+
+The correct operation is narrower. Every hard zero already sits *ahead* of the relevant pick in
+$e_j$; the only reason the simulation ever hands him to the owner is the upper tail of $S_j$. So
+keep $\mu_j=e_j$ and shrink the tail:
+
+$$\mu_j = e_j, \qquad \sigma_j = 0.5 .$$
+
+The player stays in his natural slot, displaces nobody, and his survival probability goes to
+zero because the dispersion that produced it is gone.
+
+This also resolves an apparent contradiction in the owner's own statements. He said "Henry is
+0", and separately that Henry goes at 2.10/3.01 — picks 20–21. Both are true: Henry is $0\%$ at
+pick **27** and $100\%$ at pick **16**. A blanket hard zero would have destroyed a guaranteed
+fallback.
+
+---
+
+## 50.6 The strategy layer on top
+
+Availability answers *who is there*. The owner's tiers answer *who to take*. Each RB and WR
+carries an owner tier $T(j)$ and a within-tier order $o(j)$; the pick rule is lexicographic:
+
+$$j^\star(k) \;=\; \arg\min_{j\ \text{available at}\ k}\ \big(T(j),\ o(j)\big).$$
+
+The quantity that actually drives strategy is **tier exhaustion** — the pick at which the last
+member of a tier is taken:
+
+$$X_T \;=\; \max\{\,R_j \;:\; T(j)=T\,\}.$$
+
+This matters because of the flat-vs-step result already derived in §V: within a tier the owner
+has declared the players indistinguishable, so choosing among them is worth nothing, while the
+gap *between* tiers is worth a step. Value therefore accrues at the moment a tier empties, not
+continuously down the board. Concretely: RB2 exhausts at pick 16 and WR2 at 17, so pick 16 is a
+choice between the last member of each — and no model can break a tie the owner has declared to
+be a tie.
+
+---
+
+## 50.7 What this replaces, and what it does not do
+
+It replaces per-player Gaussian noise around ADP, which encodes "player at ADP 19 goes at 19."
+That was wrong for the reason the owner gave: Kenneth Walker does not reach pick 16 because a
+specific manager wants him *and* because that roster will not double up at RB — an affinity term
+and a state-dependent need term, neither of which is noise.
+
+**It does not model those terms.** The full specification — conditional logit over the available
+set, per-manager temperature, spike-and-slab affinity, roster-need — is in
+`fantasy_draft_model.md` and is still unbuilt. It was blocked on draft logs needed to *fit* the
+per-manager parameters. That blocker is now gone for a different reason: the owner **declares**
+the availabilities the fitted model would have produced. This layer consumes the output of that
+model without containing it, which is honest but strictly weaker — it can only speak about
+players the owner has an opinion on, and it says nothing about *why* a player falls.
+
+Beyond pick 34 the owner has declared nothing, so the board there runs on the FFC/ESPN average
+with $\sigma=9$. That is the weakest region and it is where a real behavioural model would earn
+its keep.
+
+---
+
+## 50.8 Calibration achieved
+
+Sixteen declarations, all reproduced within 3 points; convergence in ≤40 passes.
+
+| player | pick | declared | delivered |
+|---|---|---|---|
+| Christian McCaffrey | 5 | 80% | 80% |
+| Puka Nacua | 5 | 20% | 20% |
+| Ja'Marr Chase | 5 | 0% | 1% |
+| Justin Jefferson | 16 | 100% | 99% |
+| Saquon Barkley | 16 | 70% | 70% |
+| Ashton Jeanty | 16 | 25% | 25% |
+| De'Von Achane | 16 | 15% | 14% |
+| CeeDee Lamb | 16 | 10% | 10% |
+| Rashee Rice | 27 | 70% | 71% |
+| Malik Nabers | 27 | 20% | 20% |
+| Chris Olave | 27 | 10% | 10% |
+| Nico Collins | 27 | 2% | 3% |
+| Travis Etienne Jr. | 34 | 72% | 73% |
+| Kyren Williams | 34 | 80% | 80% |
+| Garrett Wilson | 34 | 70% | 69% |
+| Luther Burden III | 34 | 70% | 70% |
+
+$\hat\pi$ is clamped to $[0.01,0.99]$ because $\Phi^{-1}$ is infinite at the endpoints; a
+declared 0 or 100 is therefore delivered as 1% or 99%, which is within the Monte Carlo error of
+the statement anyway.
