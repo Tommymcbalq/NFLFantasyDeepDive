@@ -69,6 +69,66 @@ def tag(pos, tier):
     return f"{POSBG.get(pos,'')}{C['b']}{C['wht']} {t:<3}{C['rst']}"
 
 
+SLOTS_REQ = {'QB': 1, 'RB': 2, 'WR': 2, 'TE': 1, 'DEF': 1}
+FLEX_N = 2
+TARGETS_FILE = "data/drafts/named_targets.csv"
+
+
+def needs(held_pos):
+    """Unfilled STARTING slots given what is rostered. Without this the panel happily
+    offers a twelfth receiver at pick 125 to a roster with no QB, TE or DST."""
+    have = {p: held_pos.count(p) for p in set(held_pos)}
+    out = []
+    for pos, n in SLOTS_REQ.items():
+        miss = n - have.get(pos, 0)
+        if miss > 0:
+            out.append((pos, miss))
+    flex_pool = max(0, have.get('RB', 0) - SLOTS_REQ['RB']) + max(0, have.get('WR', 0) - SLOTS_REQ['WR'])
+    if flex_pool < FLEX_N:
+        out.append(('FLEX', FLEX_N - flex_pool))
+    return out
+
+
+def panel_positions(live, nxt2, held_pos, inj):
+    """Best available at EVERY position, not just RB/WR, sized by what the roster still needs."""
+    nd = dict(needs(held_pos))
+    order = sorted(['RB', 'WR', 'TE', 'QB'], key=lambda p: (p not in nd, p))
+    for pos in order:
+        g = live[live.position == pos].sort_values(['tier', 'order', 'BOARD'])
+        if not len(g):
+            continue
+        k = 4 if pos in nd else 2
+        need_tag = (f"{C['bgred']}{C['b']}{C['wht']} NEED {C['rst']} " if pos in nd else "")
+        print(f"\n  {POSBG[pos]}{C['b']}{C['wht']} {pos} {C['rst']} {need_tag}")
+        for _, r in g.head(k).iterrows():
+            pn = r.get('p_next', float('nan'))
+            pv = "" if pn != pn else f"{_pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']} {bar(pn,10)}"
+            t = f"{pos}{int(r.tier)}" if r.tier == r.tier else pos
+            print(f"    {C['dim']}{t:<4}{C['rst']} {C['b']}{C['wht']}{r['name'][:24]:<25}{C['rst']}"
+                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
+
+
+def panel_targets(live, nxt2, inj):
+    """The owner's named guys. They are mostly deep in the residual tier, so a tier-sorted
+    list buries them forever -- which is how MarShawn Lloyd never once got surfaced."""
+    try:
+        t = pd.read_csv(TARGETS_FILE)
+    except Exception:
+        return
+    g = live[live.name.isin(t.name)].copy()
+    if not len(g):
+        return
+    note = dict(zip(t.name, t.note))
+    g = g.sort_values('BOARD')
+    print(f"\n  {C['b']}{C['wht']}YOUR TARGETS STILL ON THE BOARD{C['rst']}")
+    for _, r in g.head(8).iterrows():
+        pn = r.get('p_next', float('nan'))
+        pv = "" if pn != pn else f"{_pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']}"
+        print(f"    {POSC.get(r.position,'')}{r.position:<3}{C['rst']} "
+              f"{C['b']}{C['wht']}{r['name'][:22]:<23}{C['rst']}{pv}  "
+              f"{C['dim']}{note.get(r['name'],'')[:34]}{C['rst']}")
+
+
 def get(url):
     with urllib.request.urlopen(url, timeout=20) as r:
         return json.load(r)
@@ -194,40 +254,19 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         return ""
 
     if until == 0:
+        print("\a", end="")
         nxt2 = next((p for p in mine_picks if p > nxt), None)
         Pn = availability(b, gone, (nxt2 - nxt) if nxt2 else 0, seed=1)
         live = live.assign(p_next=Pn[~gone])
-        box_top(f"{C['b']}BEST AVAILABLE \u2014 YOUR TIERS{C['rst']}")
-        print(f"  {C['dim']}{'':<5}{'player':<26}{'#':<5}"
-              f"{('back at '+str(nxt2)) if nxt2 else '':<12}{C['rst']}")
-        c = live[live.position.isin(['RB','WR'])].sort_values(['tier','order','BOARD']).head(11)
-        for _, r in c.iterrows():
-            nm = r['name'][:24]
-            pn = r.get('p_next', float('nan'))
-            pv = "" if pn != pn else f"{_pc(pn)}{C['b']}{pn*100:3.0f}%{C['rst']} {bar(pn,12)}"
-            print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<26}{C['rst']}"
-                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{pv}{inj(r)}")
-        box_bot()
-        tq = live[live.position.isin(['TE','QB'])].sort_values('BOARD').head(4)
-        if len(tq):
-            print(f"  {C['dim']}market TE/QB:{C['rst']} " + "  ".join(
-                f"{POSC[r.position]}{r['name']}{C['rst']}" for _, r in tq.iterrows()))
-        rec = {}
-        for _, r in c.iterrows():
-            pn = r.get('p_next', float('nan'))
-            if pn != pn: continue
-            cur = rec.get(r.position)
-            if cur is None or (r.tier, pn) < (cur[2], cur[1]):
-                rec[r.position] = (r['name'], pn, r.tier)
-        print()
-        for pos in ('RB','WR'):
-            if pos in rec:
-                nm, pn, t = rec[pos]
-                print(f"  {POSBG[pos]}{C['b']}{C['wht']} BEST {pos} {C['rst']} "
-                      f"{C['b']}{C['wht']}{nm:<24}{C['rst']}"
-                      f"{C['dim']}{pos}{int(t)}, {pn*100:.0f}% back at {nxt2}{C['rst']}")
-        if len(rec) == 2:
-            print(f"  {C['dim']}cross-position is your call - tiers are per-position{C['rst']}")
+        held_pos = [id2.get(i, ('', '?'))[1] for i in mine_ids]
+        nd = needs(held_pos)
+        if nd:
+            print(f"  {C['bgred']}{C['b']}{C['wht']} STILL NEED {C['rst']} " +
+                  "  ".join(f"{C['b']}{C['wht']}{p}{C['rst']}{C['dim']}x{n}{C['rst']}" for p, n in nd))
+        print(f"  {C['dim']}back-at column = P(available at your next pick"
+              f"{', '+str(nxt2) if nxt2 else ''}){C['rst']}")
+        panel_positions(live, nxt2, held_pos, inj)
+        panel_targets(live, nxt2, inj)
         print(f"\n  {C['bggrn']}{C['b']}{C['wht']}  >>> PICK NOW  <<<  {C['rst']}")
         return
 
