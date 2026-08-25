@@ -34,7 +34,6 @@ SIG = {'high': 1.6, 'med': 3.0, 'low': 5.5}
 SOFT = [
     ('Christian McCaffrey',  5, 0.80, 'high'),   # owner: strict
     ('Puka Nacua',           5, 0.20, 'high'),
-    ("Ja'Marr Chase",        5, 0.01, 'high'),   # owner: 0
     ('Justin Jefferson',    16, 0.99, 'high'),   # owner: 100
     ('Saquon Barkley',      16, 0.70, 'high'),
     ('Ashton Jeanty',       16, 0.25, 'med'),
@@ -52,8 +51,12 @@ SOFT = [
 
 # Owner says these never reach him. Everything the room order already puts far in front of a
 # pick is handled by the order itself; this list is for explicit owner overrides.
+# Pick 5 is McCaffrey-or-Nacua and nothing else: owner declared 80/20 with no third
+# outcome. Gibbs/Bijan/Chase were left on default dispersion and could therefore drift
+# down to pick 5 in a draw, which is not a possibility he wants spent time on.
 HARD_ZERO = ['Derrick Henry', 'George Pickens', 'Kenneth Walker', 'Chase Brown',
-             'Omarion Hampton', 'Jeremiyah Love']
+             'Omarion Hampton', 'Jeremiyah Love',
+             'Jahmyr Gibbs', 'Bijan Robinson', "Ja'Marr Chase"]
 
 MY = [5, 16, 27, 34, 47, 54, 65, 74]
 
@@ -89,7 +92,7 @@ def main():
     # operation is only to remove the upper tail where they survive: keep mu, shrink sigma.
     for p in HARD_ZERO:
         if p in IX:
-            sig[IX[p]] = 0.5
+            sig[IX[p]] = 0.30
 
     targets = []
     for p, pk, prob, conf in SOFT:
