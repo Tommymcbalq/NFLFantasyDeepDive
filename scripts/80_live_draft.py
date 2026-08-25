@@ -91,9 +91,23 @@ def resolve_draft(league_id, fallback):
     return fallback
 
 
+PLAYERS = "data/adp/sleeper_players_nfl.json"
+
 def load():
     b = pd.read_csv(BOARD)
     b['sleeper_id'] = b.sleeper_id.astype('Int64').astype(str)
+    # Attach the injury feed. The display was written to show these but the columns were
+    # never joined on, so every flag silently rendered as empty.
+    try:
+        P = json.load(open(PLAYERS))
+        b['injury_status'] = b.sleeper_id.map(lambda i: (P.get(i) or {}).get('injury_status'))
+        b['injury_body_part'] = b.sleeper_id.map(lambda i: (P.get(i) or {}).get('injury_body_part'))
+        b['depth'] = b.sleeper_id.map(lambda i: (P.get(i) or {}).get('depth_chart_order'))
+        n = b.injury_status.notna().sum()
+        print(f"  [injury feed: {n} flagged players]")
+    except Exception as e:
+        b['injury_status'] = None; b['injury_body_part'] = None; b['depth'] = None
+        print(f"  [no injury feed: {e}]")
     own = pd.read_csv(OWNERSHIP)
     return b, own
 
@@ -203,7 +217,7 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         nm = r['name'][:22]
         warn = f" {C['red']}{C['b']}GONE{C['rst']}" if r.p_now < .35 else ""
         body = (f"  {tag(r.position,r.tier)} {C['wht']}{nm:<23}{C['rst']}"
-                f"{_pc(r.p_now)}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now)}{warn}")
+                f"{_pc(r.p_now)}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now,16)}{warn}{inj(r)}")
         print(f"{C['cyn']}\u2502{C['rst']}{body}{' '*max(W-2-vlen(body),0)}{C['cyn']}\u2502{C['rst']}")
     box_bot()
 
