@@ -33,41 +33,40 @@ N_SIM = 4000
 
 # ------------------------------------------------------------------ display
 C = dict(rst="\033[0m", b="\033[1m", dim="\033[2m",
-         red="\033[38;5;203m", grn="\033[38;5;114m", yel="\033[38;5;221m",
-         blu="\033[38;5;75m",  mag="\033[38;5;177m", orn="\033[38;5;215m",
-         cyn="\033[38;5;80m",  gry="\033[38;5;245m", wht="\033[38;5;255m",
-         bgblu="\033[48;5;24m", bggrn="\033[48;5;22m", bgred="\033[48;5;52m")
+         red="\033[38;5;210m", grn="\033[38;5;120m", yel="\033[38;5;228m",
+         blu="\033[38;5;117m", mag="\033[38;5;183m", orn="\033[38;5;223m",
+         cyn="\033[38;5;123m", gry="\033[38;5;250m", wht="\033[38;5;231m",
+         bgblu="\033[48;5;25m", bggrn="\033[48;5;28m", bgred="\033[48;5;88m",
+         bgrb="\033[48;5;22m", bgwr="\033[48;5;24m", bgte="\033[48;5;94m",
+         bgqb="\033[48;5;54m")
 POSC = {'RB': C['grn'], 'WR': C['blu'], 'TE': C['orn'], 'QB': C['mag']}
+POSBG = {'RB': C['bgrb'], 'WR': C['bgwr'], 'TE': C['bgte'], 'QB': C['bgqb']}
 W = 78
+
+_ANSI = re.compile(r"\033\[[0-9;]*m")
+def vlen(s):
+    """visible width: ANSI escapes occupy no columns, so len() over-counts."""
+    return len(_ANSI.sub("", s))
 
 def _pc(p):
     return C['grn'] if p >= .70 else (C['yel'] if p >= .35 else C['red'])
 
-_ANSI = re.compile(r"\033\[[0-9;]*m")
-def vlen(s):
-    """visible width: ANSI escapes occupy no columns, so len() over-counts and
-    every box border drawn from it comes out short."""
-    return len(_ANSI.sub("", s))
+def hdr(t):
+    print(f"\n  {C['b']}{C['wht']}{t}{C['rst']}  {C['dim']}{'\u2500'*max(W-6-len(t),0)}{C['rst']}")
 
 def box_top(t=""):
-    t = f" {t} " if t else ""
-    pad = W - 2 - vlen(t)
-    print(f"{C['cyn']}\u250c{t}{'\u2500'*max(pad,0)}\u2510{C['rst']}")
+    hdr(_ANSI.sub("", t).strip())
 
 def box_bot():
-    print(f"{C['cyn']}\u2514{'\u2500'*(W-2)}\u2518{C['rst']}")
+    pass
 
-def line(s="", raw_len=None):
-    n = raw_len if raw_len is not None else len(s)
-    print(f"{C['cyn']}\u2502{C['rst']}{s}{' '*max(W-2-n,0)}{C['cyn']}\u2502{C['rst']}")
-
-def bar(p, width=22):
+def bar(p, width=18):
     fill = int(round(p*width))
-    return f"{_pc(p)}{'\u2588'*fill}{C['gry']}{'\u2591'*(width-fill)}{C['rst']}"
+    return f"{_pc(p)}{'\u2588'*fill}{C['dim']}{'\u00b7'*(width-fill)}{C['rst']}"
 
 def tag(pos, tier):
     t = f"{pos}{int(tier)}" if tier == tier else pos
-    return f"{POSC.get(pos,C['wht'])}{C['b']}{t:<4}{C['rst']}"
+    return f"{POSBG.get(pos,'')}{C['b']}{C['wht']} {t:<3}{C['rst']}"
 
 
 def get(url):
@@ -199,9 +198,8 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
         c = live[live.position.isin(['RB','WR'])].sort_values(['tier','order','BOARD']).head(11)
         for _, r in c.iterrows():
             nm = r['name'][:24]
-            body = (f"  {tag(r.position,r.tier)} {C['wht']}{nm:<25}{C['rst']}"
-                    f"{C['gry']}board#{int(r.BOARD):<5}{C['rst']}{inj(r)}")
-            print(f"{C['cyn']}\u2502{C['rst']}{body}{' '*max(W-2-vlen(body),0)}{C['cyn']}\u2502{C['rst']}")
+            print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<26}{C['rst']}"
+                  f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{inj(r)}")
         box_bot()
         tq = live[live.position.isin(['TE','QB'])].sort_values('BOARD').head(4)
         if len(tq):
@@ -216,9 +214,8 @@ def snapshot(b, own, draft_id, replay=None, last_n=[-1]):
     for _, r in c.iterrows():
         nm = r['name'][:22]
         warn = f" {C['red']}{C['b']}GONE{C['rst']}" if r.p_now < .35 else ""
-        body = (f"  {tag(r.position,r.tier)} {C['wht']}{nm:<23}{C['rst']}"
-                f"{_pc(r.p_now)}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now,16)}{warn}{inj(r)}")
-        print(f"{C['cyn']}\u2502{C['rst']}{body}{' '*max(W-2-vlen(body),0)}{C['cyn']}\u2502{C['rst']}")
+        print(f"  {tag(r.position,r.tier)} {C['b']}{C['wht']}{nm:<24}{C['rst']}"
+              f"{_pc(r.p_now)}{C['b']}{r.p_now*100:3.0f}%{C['rst']} {bar(r.p_now)}{warn}{inj(r)}")
     box_bot()
 
     print(f"\n  {C['b']}TIERS{C['rst']}")

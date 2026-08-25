@@ -107,9 +107,8 @@ def render(b, chosen, a):
     c = live[live.position.isin(['RB', 'WR'])].sort_values(['tier', 'order', 'BOARD']).head(11)
     for _, r in c.iterrows():
         nm = r['name'][:24]
-        body = (f"  {L.tag(r.position, r.tier)} {C['wht']}{nm:<25}{C['rst']}"
-                f"{C['gry']}board#{int(r.BOARD):<5}{C['rst']}{inj(r)}")
-        print(f"{C['cyn']}│{C['rst']}{body}{' '*max(W-2-L.vlen(body),0)}{C['cyn']}│{C['rst']}")
+        print(f"  {L.tag(r.position, r.tier)} {C['b']}{C['wht']}{nm:<26}{C['rst']}"
+              f"{C['dim']}#{int(r.BOARD):<4}{C['rst']}{inj(r)}")
     L.box_bot()
     tq = live[live.position.isin(['TE', 'QB'])].sort_values('BOARD').head(4)
     if len(tq):
