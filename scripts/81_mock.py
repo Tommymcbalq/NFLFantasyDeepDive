@@ -31,6 +31,11 @@ MY = [5, 16, 27, 34, 47, 54, 65, 74, 85, 87, 105, 116, 125, 136, 145]
 OPENING = ['Jahmyr Gibbs', 'Bijan Robinson', "Ja'Marr Chase"]
 P_NACUA_AT_4 = 0.80
 
+# cosabosa acquired 2.02 and, per the owner, takes an RB there with certainty --
+# Cook / Hampton / JT / Walker, whoever has fallen. A position certainty is structural
+# and cannot be expressed by per-player slot scores, so pick 12 is forced by position.
+FORCED_POS = {12: 'RB'}
+
 
 ALIAS = {'cmc': 'christian mccaffrey', 'arsb': 'amon-ra st brown', 'csb': 'amon-ra st brown',
          'jsn': 'jaxon smith-njigba', 'jt': 'jonathan taylor', 'etn': 'travis etienne',
@@ -93,7 +98,16 @@ def render(b, chosen, a):
             if j < len(chosen):
                 mine_at[pk] = chosen[j]
             continue
-        if pk in forced:
+        if pk in FORCED_POS:
+            want = FORCED_POS[pk]
+            pool = [j for j in range(len(name))
+                    if not taken[j] and b.position.iat[j] == want]
+            if pool:
+                i = min(pool, key=lambda j: (b.tier.iat[j] if b.tier.iat[j] == b.tier.iat[j] else 9,
+                                             b.order.iat[j], b.BOARD.iat[j]))
+            else:
+                continue
+        elif pk in forced:
             i = forced[pk]
             if taken[i]:
                 continue
@@ -182,9 +196,12 @@ def main():
 
     chosen = []
     for p in [x.strip() for x in a.picks.split(',') if x.strip()]:
-        hit = [i for n, i in idx.items() if p.lower() in n]
-        if hit:
-            chosen.append(hit[0])
+        # must use the same resolver as the prompt, or --picks silently drops names
+        # (aliases like 'cmc' matched nothing and the mock quietly rendered an earlier pick)
+        hit = match(p, name, idx, chosen)
+        if not hit:
+            print(f"{C['red']}--picks: no match for '{p}'{C['rst']}"); sys.exit(1)
+        chosen.append(hit[0])
 
     while len(chosen) < len(MY):
         _, taken = render(b, chosen, a)

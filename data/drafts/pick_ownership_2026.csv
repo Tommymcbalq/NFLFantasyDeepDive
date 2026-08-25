@@ -10,7 +10,7 @@ overall,rnd,pick_in_rnd,slot,original,owner,traded
 9,1,9,9,OscarDempsey,OscarDempsey,0
 10,1,10,10,drdray1,drdray1,0
 11,2,1,10,drdray1,WillHayes33,1
-12,2,2,9,OscarDempsey,OscarDempsey,0
+12,2,2,9,OscarDempsey,cosabosa,1
 13,2,3,8,HouseofCB,HouseofCB,0
 14,2,4,7,SharksGeneralManager,SharksGeneralManager,0
 15,2,5,6,WillHayes33,drdray1,1
@@ -18,8 +18,8 @@ overall,rnd,pick_in_rnd,slot,original,owner,traded
 17,2,7,4,cosabosa,vcashdaddy,1
 18,2,8,3,Crollll,Crollll,0
 19,2,9,2,JamesCS,JamesCS,0
-20,2,10,1,vcashdaddy,cosabosa,1
-21,3,1,1,vcashdaddy,cosabosa,1
+20,2,10,1,vcashdaddy,OscarDempsey,1
+21,3,1,1,vcashdaddy,OscarDempsey,1
 22,3,2,2,JamesCS,JamesCS,0
 23,3,3,3,Crollll,Crollll,0
 24,3,4,4,cosabosa,vcashdaddy,1
@@ -27,7 +27,7 @@ overall,rnd,pick_in_rnd,slot,original,owner,traded
 26,3,6,6,WillHayes33,drdray1,1
 27,3,7,7,SharksGeneralManager,timmy2tufff,1
 28,3,8,8,HouseofCB,HouseofCB,0
-29,3,9,9,OscarDempsey,OscarDempsey,0
+29,3,9,9,OscarDempsey,cosabosa,1
 30,3,10,10,drdray1,WillHayes33,1
 31,4,1,10,drdray1,drdray1,0
 32,4,2,9,OscarDempsey,OscarDempsey,0
@@ -35,7 +35,7 @@ overall,rnd,pick_in_rnd,slot,original,owner,traded
 34,4,4,7,SharksGeneralManager,timmy2tufff,1
 35,4,5,6,WillHayes33,WillHayes33,0
 36,4,6,5,timmy2tufff,SharksGeneralManager,1
-37,4,7,4,cosabosa,cosabosa,0
+37,4,7,4,cosabosa,OscarDempsey,1
 38,4,8,3,Crollll,Crollll,0
 39,4,9,2,JamesCS,JamesCS,0
 40,4,10,1,vcashdaddy,vcashdaddy,0
@@ -50,7 +50,7 @@ overall,rnd,pick_in_rnd,slot,original,owner,traded
 49,5,9,9,OscarDempsey,OscarDempsey,0
 50,5,10,10,drdray1,drdray1,0
 51,6,1,10,drdray1,drdray1,0
-52,6,2,9,OscarDempsey,OscarDempsey,0
+52,6,2,9,OscarDempsey,cosabosa,1
 53,6,3,8,HouseofCB,HouseofCB,0
 54,6,4,7,SharksGeneralManager,timmy2tufff,1
 55,6,5,6,WillHayes33,WillHayes33,0
